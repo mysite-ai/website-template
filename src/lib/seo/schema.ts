@@ -27,12 +27,24 @@ export function buildLocationSeo(input: LocationSeoInput): LocationSeoResult {
   const { tenant, path } = input;
   const { org, brand, location, primaryHostname } = tenant;
 
-  const displayName =
-    brand.slug === location.slug
-      ? brand.name
+  const isSingleLocation = brand.slug === location.slug;
+  // For single-location tenants: "Karat — Warsaw"
+  // For multi-location tenants: "Doublz — La Puente" (brand — city) — we
+  //   already know location.name often IS "Brand — City", so don't repeat.
+  const cityLabel = location.city ?? org.name;
+  const displayName = isSingleLocation
+    ? brand.name
+    : location.name.includes(cityLabel)
+      ? location.name
       : `${brand.name} · ${location.name}`;
 
-  const title = input.title ?? `${displayName} — ${location.city ?? org.name}`;
+  const title =
+    input.title ??
+    (isSingleLocation
+      ? `${brand.name} — ${cityLabel}`
+      : location.name.includes(cityLabel)
+        ? location.name
+        : `${location.name} — ${cityLabel}`);
   const description =
     input.description ??
     brand.tagline ??
