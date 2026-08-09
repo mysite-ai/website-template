@@ -7,19 +7,19 @@ interface Props {
 }
 
 /**
- * GalleryBrowser — mosaic gallery grid + fullscreen lightbox preview.
+ * GalleryBrowser — clean square gallery grid + fullscreen lightbox preview.
  *
- * Layout:
- *   - 1 featured tile (16:9) on top
- *   - 3-up square strip
- *   - 2-up landscape strip
+ * Layout: 2 columns on mobile, 3 columns from `sm:` up. Every tile is a
+ * perfect square rendered `object-cover`. This matches the "Our cafe" grid
+ * on marszalkowska.thewhitebearcoffee.pl and reads well on any tenant
+ * because tiles are uniform (no fragile mosaic hierarchy).
  *
  * Click any tile → opens a fullscreen dialog with keyboard nav
  * (Arrow left/right, Escape). Follows shadcn Dialog conventions
  * but styled for image preview (dark backdrop, no chrome).
  *
  * Defensive: broken image URLs are tracked in state via `onError`
- * and silently dropped from both the mosaic AND the lightbox so an
+ * and silently dropped from both the grid AND the lightbox so an
  * ugly "alt-text + broken glyph" tile never renders.
  */
 export default function GalleryBrowser({ images }: Props) {
@@ -82,51 +82,26 @@ export default function GalleryBrowser({ images }: Props) {
 
   if (visible.length === 0) return null;
 
-  const featured = visible[0];
-  const row3 = visible.slice(1, 4);
-  const row2 = visible.slice(4, 6);
   const selected = selectedIndex !== null ? visible[selectedIndex] : null;
+
+  // If we only have 4 tiles, keep a clean 2×2 on every breakpoint.
+  // Otherwise (6, 9) fall back to 3-col from sm: up so the last row fills.
+  const gridClass =
+    visible.length === 4
+      ? "grid grid-cols-2 gap-2 sm:gap-2.5"
+      : "grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5";
 
   return (
     <>
-      <div className="grid gap-2 sm:gap-2.5">
-        {featured && (
+      <div className={gridClass}>
+        {visible.map((image, i) => (
           <ImageTile
-            image={featured}
-            aspect="aspect-[16/9]"
-            radius="rounded-2xl"
-            onClick={() => setSelectedIndex(0)}
-            onError={() => markBroken(featured.src)}
+            key={image.src}
+            image={image}
+            onClick={() => setSelectedIndex(i)}
+            onError={() => markBroken(image.src)}
           />
-        )}
-        {row3.length > 0 && (
-          <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
-            {row3.map((image, i) => (
-              <ImageTile
-                key={image.src}
-                image={image}
-                aspect="aspect-square"
-                radius="rounded-xl"
-                onClick={() => setSelectedIndex(i + 1)}
-                onError={() => markBroken(image.src)}
-              />
-            ))}
-          </div>
-        )}
-        {row2.length > 0 && (
-          <div className={`grid gap-2 sm:gap-2.5 ${row2.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-            {row2.map((image, i) => (
-              <ImageTile
-                key={image.src}
-                image={image}
-                aspect="aspect-[4/3]"
-                radius="rounded-xl"
-                onClick={() => setSelectedIndex(i + 4)}
-                onError={() => markBroken(image.src)}
-              />
-            ))}
-          </div>
-        )}
+        ))}
       </div>
 
       {selected && selectedIndex !== null && (
@@ -146,18 +121,16 @@ export default function GalleryBrowser({ images }: Props) {
 
 interface ImageTileProps {
   image: GalleryImage;
-  aspect: string;
-  radius: string;
   onClick: () => void;
   onError: () => void;
 }
 
-function ImageTile({ image, aspect, radius, onClick, onError }: ImageTileProps) {
+function ImageTile({ image, onClick, onError }: ImageTileProps) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`group relative block w-full ${aspect} overflow-hidden ${radius} ring-1 ring-foreground/10 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50`}
+      className="group relative block aspect-square w-full overflow-hidden rounded-xl ring-1 ring-foreground/10 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       aria-label={image.alt || "Open image"}
       data-umami-event="click-gallery-tile"
     >
@@ -167,7 +140,7 @@ function ImageTile({ image, aspect, radius, onClick, onError }: ImageTileProps) 
         loading="lazy"
         decoding="async"
         onError={onError}
-        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
       />
     </button>
   );
