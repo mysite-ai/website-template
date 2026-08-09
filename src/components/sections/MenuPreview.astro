@@ -1,0 +1,53 @@
+---
+import type { TenantContext } from "@/lib/tenant/types";
+import { UtensilsCrossed } from "lucide-react";
+
+interface Props {
+  tenant: TenantContext;
+}
+
+const { tenant } = Astro.props;
+const menu = tenant.location.menu;
+
+// Show up to 3 category chips as a teaser. wbc-v2's pattern: give a
+// preview on the landing so users don't have to navigate to see what
+// kind of menu the place has, but keep the full render on /menu.
+const preview = menu?.categories.slice(0, 3) ?? [];
+const showSection = preview.length > 0;
+---
+
+{showSection && (
+  <section class="section-well mt-6">
+    <div class="map-card p-5 sm:p-6">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Menu</h2>
+
+      <div class="space-y-2 mb-5">
+        {preview.map((cat) => {
+          const itemCount = cat.items.length;
+          const first = cat.items[0];
+          const preview = first ? `${first.name}${cat.items[1] ? ` · ${cat.items[1].name}` : ""}` : null;
+          return (
+            <div class="rounded-xl border border-border/60 bg-card/80 p-3 sm:p-4">
+              <p class="text-sm font-semibold mb-0.5">{cat.name}</p>
+              {preview && (
+                <p class="text-xs text-muted-foreground line-clamp-1">
+                  {preview}{itemCount > 2 ? ` · +${itemCount - 2} more` : ""}
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <a
+        href="/menu"
+        class="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:scale-[1.01] transition-transform"
+        data-umami-event="click-view-menu"
+        data-umami-event-target="section-menu-preview"
+      >
+        <UtensilsCrossed size={18} aria-hidden="true" />
+        View full menu
+      </a>
+    </div>
+  </section>
+)}

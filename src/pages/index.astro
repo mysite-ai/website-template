@@ -3,30 +3,31 @@ import BaseLayout from "@/layouts/BaseLayout.astro";
 import Hero from "@/components/sections/Hero.astro";
 import QuickActions from "@/components/sections/QuickActions.astro";
 import Hours from "@/components/sections/Hours.astro";
+import Socials from "@/components/sections/Socials.astro";
 import Gallery from "@/components/sections/Gallery.astro";
-import MapEmbed from "@/components/sections/MapEmbed.astro";
+import MenuPreview from "@/components/sections/MenuPreview.astro";
 import About from "@/components/sections/About.astro";
+import MapEmbed from "@/components/sections/MapEmbed.astro";
 import Delivery from "@/components/sections/Delivery.astro";
 import { buildLocationSeo } from "@/lib/seo/schema";
 
 const tenant = Astro.locals.tenant;
 const seo = buildLocationSeo({ tenant, path: "/" });
 
-// Cache SSR responses on Vercel's edge: same tenant + same path is cheap
-// to regenerate but even cheaper to serve from cache. 60s matches the
-// tenant resolver TTL, so a domain change propagates in ≤60s.
 Astro.response.headers.set(
   "cache-control",
   "public, s-maxage=60, stale-while-revalidate=300",
 );
 ---
 
-<BaseLayout tenant={tenant} seo={seo} currentPath="/">
+<BaseLayout tenant={tenant} seo={seo} currentPath="/" showHeader={false}>
   <Hero tenant={tenant} />
   <QuickActions tenant={tenant} />
   <Hours tenant={tenant} />
+  <Socials tenant={tenant} />
   <Gallery tenant={tenant} />
-  <MapEmbed tenant={tenant} />
+  <MenuPreview tenant={tenant} />
   <About tenant={tenant} />
+  <MapEmbed tenant={tenant} />
   <Delivery tenant={tenant} />
 </BaseLayout>

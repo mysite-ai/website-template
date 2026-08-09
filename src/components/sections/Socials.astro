@@ -1,0 +1,60 @@
+---
+import type { TenantContext } from "@/lib/tenant/types";
+import { Instagram, Facebook } from "lucide-react";
+
+interface Props {
+  tenant: TenantContext;
+}
+
+const { tenant } = Astro.props;
+const { location } = tenant;
+
+interface Social {
+  icon: typeof Instagram;
+  label: string;
+  href: string;
+  umamiTarget: string;
+}
+
+const socials: Social[] = [
+  location.instagram_url
+    ? {
+        icon: Instagram,
+        label: "Instagram",
+        href: location.instagram_url,
+        umamiTarget: "instagram-hero",
+      }
+    : null,
+  location.facebook_url
+    ? {
+        icon: Facebook,
+        label: "Facebook",
+        href: location.facebook_url,
+        umamiTarget: "facebook-hero",
+      }
+    : null,
+].filter((s): s is Social => s !== null);
+---
+
+{socials.length > 0 && (
+  <section class="section-well mt-4">
+    <div class:list={["grid gap-2 sm:gap-3", socials.length > 1 ? "grid-cols-2" : "grid-cols-1"]}>
+      {socials.map((social) => {
+        const Icon = social.icon;
+        return (
+          <a
+            href={social.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="map-card flex items-center justify-center gap-2 py-3 sm:py-4 text-sm font-medium hover:bg-card transition-colors"
+            data-umami-event="click-social"
+            data-umami-event-target={social.umamiTarget}
+          >
+            <Icon size={20} aria-hidden="true" />
+            {social.label}
+          </a>
+        );
+      })}
+    </div>
+  </section>
+)}

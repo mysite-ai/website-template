@@ -132,10 +132,10 @@ export default function PromoFlow(props: PromoFlowProps) {
             <img
               src={brandLogoUrl}
               alt={brandName}
-              className="w-16 h-16 mx-auto mb-4 rounded-2xl object-cover"
+              className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 object-contain"
             />
           ) : (
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary text-primary-foreground grid place-items-center text-xl font-semibold">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-primary text-primary-foreground grid place-items-center text-2xl font-semibold">
               {brandName.charAt(0)}
             </div>
           )}

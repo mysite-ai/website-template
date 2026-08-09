@@ -1,5 +1,7 @@
 ---
 import type { TenantContext } from "@/lib/tenant/types";
+import { formatPhone } from "@/lib/utils";
+import { MapPin, Navigation, Phone } from "lucide-react";
 
 interface Props {
   tenant: TenantContext;
@@ -7,27 +9,70 @@ interface Props {
 
 const { tenant } = Astro.props;
 const { location } = tenant;
+
+const addressLine1 = location.address_line;
+const addressLine2 = [location.postal_code, location.city].filter(Boolean).join(" ");
+const phoneHref = location.phone ? `tel:${location.phone.replace(/\s+/g, "")}` : null;
+const directionsHref = location.maps_search_query
+  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.maps_search_query)}`
+  : null;
+const shouldRender = addressLine1 || location.maps_embed_url;
 ---
 
-{location.maps_embed_url && (
-  <section class="section-well mt-4">
+{shouldRender && (
+  <section id="location" class="section-well mt-6 scroll-mt-16">
+    <h2 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 px-1">
+      Location
+    </h2>
     <div class="map-card overflow-hidden">
-      <iframe
-        src={location.maps_embed_url}
-        title={`Mapa — ${location.name}`}
-        class="w-full aspect-[16/10] border-0"
-        loading="lazy"
-        allowfullscreen
-        referrerpolicy="no-referrer-when-downgrade"
-      />
-      {(location.address_line || location.city) && (
-        <div class="p-5 sm:p-6">
-          <p class="text-sm font-semibold">📍 {location.name}</p>
-          <p class="mt-1 text-sm text-muted-foreground">
-            {[location.address_line, location.postal_code, location.city].filter(Boolean).join(", ")}
-          </p>
-        </div>
+      {location.maps_embed_url && (
+        <iframe
+          src={location.maps_embed_url}
+          title={`Map — ${location.name}`}
+          class="w-full aspect-[16/9] border-0"
+          loading="lazy"
+          allowfullscreen
+          referrerpolicy="no-referrer-when-downgrade"
+        />
       )}
+
+      <div class="p-5 sm:p-6">
+        <div class="flex items-start gap-3 mb-4">
+          <MapPin size={20} className="mt-0.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <div>
+            <p class="text-base sm:text-lg font-medium">{location.name}</p>
+            {addressLine1 && <p class="text-sm text-muted-foreground">{addressLine1}</p>}
+            {addressLine2 && <p class="text-sm text-muted-foreground">{addressLine2}</p>}
+          </div>
+        </div>
+
+        <div class="grid gap-2 sm:grid-cols-2">
+          {directionsHref && (
+            <a
+              href={directionsHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold py-3 hover:scale-[1.01] transition-transform"
+              data-umami-event="click-directions"
+              data-umami-event-target="section-location"
+            >
+              <Navigation size={18} aria-hidden="true" />
+              Get directions
+            </a>
+          )}
+          {phoneHref && location.phone && (
+            <a
+              href={phoneHref}
+              class="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card text-foreground text-sm font-semibold py-3 hover:bg-muted transition-colors"
+              data-umami-event="click-call"
+              data-umami-event-target="section-location"
+            >
+              <Phone size={18} aria-hidden="true" />
+              {formatPhone(location.phone)}
+            </a>
+          )}
+        </div>
+      </div>
     </div>
   </section>
 )}

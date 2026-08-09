@@ -12,10 +12,21 @@ const displayName = brand.slug === location.slug ? brand.name : `${brand.name} �
 const year = new Date().getFullYear();
 ---
 
-<footer class="section-well py-10 mt-16 text-center">
-  <p class="text-sm text-muted-foreground">© {year} {displayName}</p>
+<footer class="section-well py-10 mt-12 border-t border-border pt-8 text-center">
+  {brand.logo_url && (
+    <img
+      src={brand.logo_url}
+      alt={brand.name}
+      class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 object-contain opacity-90"
+      loading="lazy"
+      decoding="async"
+    />
+  )}
+  <p class="text-xs sm:text-sm text-muted-foreground">
+    © {year} {displayName}. All rights reserved.
+  </p>
   {location.address_line && (
-    <p class="text-xs text-muted-foreground mt-1">
+    <p class="text-[11px] text-muted-foreground mt-1">
       {[location.address_line, location.postal_code, location.city].filter(Boolean).join(", ")}
     </p>
   )}

@@ -1,51 +1,72 @@
 ---
 import type { TenantContext } from "@/lib/tenant/types";
+import PromoBanner from "@/components/promo/PromoBanner.tsx";
 
 interface Props {
   tenant: TenantContext;
 }
 
 const { tenant } = Astro.props;
-const { brand, location } = tenant;
-const displayName = brand.slug === location.slug ? brand.name : `${brand.name} · ${location.name}`;
-const heroImage = tenant.location.gallery[0]?.src ?? null;
-const heroAlt = tenant.location.gallery[0]?.alt ?? displayName;
+const { org, brand, location } = tenant;
+
+const brandName = brand.name;
+const locationLabel = [location.city, location.region].filter(Boolean).join(" · ");
+const promoConfigured =
+  !!location.attribution_promotion_id &&
+  !!location.attribution_campaign_id &&
+  !!location.attribution_org_id;
+
+// Preload the logo — it's the first thing users see and dominates LCP.
 ---
 
-{heroImage && (
-  <link rel="preload" as="image" href={heroImage} />
-)}
+{brand.logo_url && <link rel="preload" as="image" href={brand.logo_url} />}
 
-<section class="section-well pt-6">
-  <div class="map-card overflow-hidden">
-    {heroImage ? (
-      <div class="relative aspect-[16/10] w-full">
-        <img
-          src={heroImage}
-          alt={heroAlt}
-          class="absolute inset-0 h-full w-full object-cover"
-          fetchpriority="high"
-          decoding="async"
-        />
-        <div class="absolute inset-0 bg-gradient-to-t from-background/70 via-background/10 to-transparent" />
-      </div>
+<section class="section-well pt-8 pb-8 sm:pt-10 sm:pb-12">
+  <div class="text-center">
+    {brand.logo_url ? (
+      <img
+        src={brand.logo_url}
+        alt={brandName}
+        class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-5 sm:mb-6 object-contain"
+        fetchpriority="high"
+        decoding="async"
+      />
     ) : (
-      <div class="aspect-[16/10] w-full bg-gradient-to-br from-muted to-background" />
+      <div class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-5 sm:mb-6 rounded-2xl bg-primary text-primary-foreground grid place-items-center text-3xl font-semibold">
+        {brandName.charAt(0)}
+      </div>
     )}
 
-    <div class="p-6 sm:p-8">
-      <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight">{displayName}</h1>
-      {brand.tagline && (
-        <p class="mt-2 text-sm sm:text-base text-muted-foreground leading-relaxed">
-          {brand.tagline}
-        </p>
-      )}
+    <h1 class="text-3xl sm:text-4xl tracking-tight mb-2 font-semibold">
+      {brandName}
+    </h1>
 
-      {(location.address_line || location.city) && (
-        <p class="mt-4 text-sm text-muted-foreground">
-          {[location.address_line, location.city].filter(Boolean).join(" · ")}
-        </p>
-      )}
-    </div>
+    {locationLabel && (
+      <p class="text-muted-foreground text-sm sm:text-base tracking-wide mb-4">
+        {locationLabel}
+      </p>
+    )}
+
+    {brand.tagline && (
+      <p class="text-base sm:text-lg italic text-foreground max-w-md mx-auto leading-relaxed">
+        {brand.tagline}
+      </p>
+    )}
   </div>
+
+  {promoConfigured && (
+    <div class="mt-6 sm:mt-8">
+      <PromoBanner
+        client:load
+        href="/promocja"
+        headline={location.promotion_name_cached ?? "Loyalty rewards"}
+        subline={location.reward_description_cached
+          ? `Scan the QR to unlock: ${location.reward_description_cached}`
+          : "Tap to reveal your personal QR code"}
+        validUntilLabel="Ends {date}"
+        expiredLabel="This promotion has ended"
+        locale={org.default_locale ?? "en"}
+      />
+    </div>
+  )}
 </section>

@@ -13,9 +13,10 @@ interface Props {
   seo: LocationSeoResult;
   currentPath: string;
   bodyClass?: string;
+  showHeader?: boolean;
 }
 
-const { tenant, seo, currentPath, bodyClass = "" } = Astro.props;
+const { tenant, seo, currentPath, bodyClass = "", showHeader = true } = Astro.props;
 const { org, brand, location } = tenant;
 
 const pixel = {
@@ -54,7 +55,7 @@ const hasUmami = !!location.umami_website_id;
     <script is:inline type="application/ld+json" set:html={seo.jsonLd} />
   </head>
   <body class={bodyClass}>
-    <Header tenant={tenant} currentPath={currentPath} />
+    {showHeader && <Header tenant={tenant} currentPath={currentPath} />}
 
     <main>
       <slot />

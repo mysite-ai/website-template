@@ -22,7 +22,7 @@ const links: Array<{ href: string; label: string }> = [
   <div class="flex items-center justify-between">
     <a href="/" class="flex items-center gap-3" aria-label={displayName}>
       {brand.logo_url ? (
-        <img src={brand.logo_url} alt={displayName} class="h-9 w-9 rounded-lg object-cover" loading="eager" />
+        <img src={brand.logo_url} alt={displayName} class="h-9 w-9 object-contain" loading="eager" />
       ) : (
         <div class="h-9 w-9 rounded-lg bg-primary text-primary-foreground grid place-items-center text-sm font-semibold">
           {displayName.charAt(0)}
