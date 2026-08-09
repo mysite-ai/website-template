@@ -52,8 +52,8 @@ export default function MenuBrowser({ menu }: Props) {
               className={cn(
                 "shrink-0 px-3.5 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors",
                 activeId === cat.id
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted",
+                  ? "bg-secondary text-secondary-foreground"
+                  : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted",
               )}
             >
               {cat.name}
