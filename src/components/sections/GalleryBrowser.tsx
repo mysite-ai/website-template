@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import type { GalleryImage } from "@/lib/tenant/types";
 
@@ -17,25 +17,52 @@ interface Props {
  * Click any tile → opens a fullscreen dialog with keyboard nav
  * (Arrow left/right, Escape). Follows shadcn Dialog conventions
  * but styled for image preview (dark backdrop, no chrome).
+ *
+ * Defensive: broken image URLs are tracked in state via `onError`
+ * and silently dropped from both the mosaic AND the lightbox so an
+ * ugly "alt-text + broken glyph" tile never renders.
  */
 export default function GalleryBrowser({ images }: Props) {
+  const [brokenSrcs, setBrokenSrcs] = useState<Set<string>>(() => new Set());
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
+  const markBroken = useCallback((src: string) => {
+    setBrokenSrcs((prev) => {
+      if (prev.has(src)) return prev;
+      const next = new Set(prev);
+      next.add(src);
+      return next;
+    });
+  }, []);
+
+  // Filter out broken images. Everything downstream — grid layout, lightbox
+  // count, prev/next — reads from this filtered array.
+  const visible = useMemo(
+    () => images.filter((img) => !brokenSrcs.has(img.src)),
+    [images, brokenSrcs],
+  );
+
+  // If the currently-selected image is dropped as broken, close the lightbox.
+  useEffect(() => {
+    if (selectedIndex === null) return;
+    if (selectedIndex >= visible.length) setSelectedIndex(null);
+  }, [selectedIndex, visible.length]);
 
   const close = useCallback(() => setSelectedIndex(null), []);
 
   const prev = useCallback(() => {
     setSelectedIndex((i) => {
-      if (i === null) return null;
-      return i > 0 ? i - 1 : images.length - 1;
+      if (i === null || visible.length === 0) return null;
+      return i > 0 ? i - 1 : visible.length - 1;
     });
-  }, [images.length]);
+  }, [visible.length]);
 
   const next = useCallback(() => {
     setSelectedIndex((i) => {
-      if (i === null) return null;
-      return i < images.length - 1 ? i + 1 : 0;
+      if (i === null || visible.length === 0) return null;
+      return i < visible.length - 1 ? i + 1 : 0;
     });
-  }, [images.length]);
+  }, [visible.length]);
 
   useEffect(() => {
     if (selectedIndex === null) return;
@@ -45,7 +72,6 @@ export default function GalleryBrowser({ images }: Props) {
       else if (e.key === "ArrowRight") next();
     };
     window.addEventListener("keydown", onKey);
-    // Prevent body scroll while lightbox is open
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -54,10 +80,12 @@ export default function GalleryBrowser({ images }: Props) {
     };
   }, [selectedIndex, close, prev, next]);
 
-  const featured = images[0];
-  const row3 = images.slice(1, 4);
-  const row2 = images.slice(4, 6);
-  const selected = selectedIndex !== null ? images[selectedIndex] : null;
+  if (visible.length === 0) return null;
+
+  const featured = visible[0];
+  const row3 = visible.slice(1, 4);
+  const row2 = visible.slice(4, 6);
+  const selected = selectedIndex !== null ? visible[selectedIndex] : null;
 
   return (
     <>
@@ -68,17 +96,19 @@ export default function GalleryBrowser({ images }: Props) {
             aspect="aspect-[16/9]"
             radius="rounded-2xl"
             onClick={() => setSelectedIndex(0)}
+            onError={() => markBroken(featured.src)}
           />
         )}
         {row3.length > 0 && (
           <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
             {row3.map((image, i) => (
               <ImageTile
-                key={i + 1}
+                key={image.src}
                 image={image}
                 aspect="aspect-square"
                 radius="rounded-xl"
                 onClick={() => setSelectedIndex(i + 1)}
+                onError={() => markBroken(image.src)}
               />
             ))}
           </div>
@@ -87,11 +117,12 @@ export default function GalleryBrowser({ images }: Props) {
           <div className={`grid gap-2 sm:gap-2.5 ${row2.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
             {row2.map((image, i) => (
               <ImageTile
-                key={i + 4}
+                key={image.src}
                 image={image}
                 aspect="aspect-[4/3]"
                 radius="rounded-xl"
                 onClick={() => setSelectedIndex(i + 4)}
+                onError={() => markBroken(image.src)}
               />
             ))}
           </div>
@@ -102,10 +133,11 @@ export default function GalleryBrowser({ images }: Props) {
         <Lightbox
           image={selected}
           index={selectedIndex}
-          total={images.length}
+          total={visible.length}
           onClose={close}
           onPrev={prev}
           onNext={next}
+          onError={() => markBroken(selected.src)}
         />
       )}
     </>
@@ -117,9 +149,10 @@ interface ImageTileProps {
   aspect: string;
   radius: string;
   onClick: () => void;
+  onError: () => void;
 }
 
-function ImageTile({ image, aspect, radius, onClick }: ImageTileProps) {
+function ImageTile({ image, aspect, radius, onClick, onError }: ImageTileProps) {
   return (
     <button
       type="button"
@@ -130,9 +163,10 @@ function ImageTile({ image, aspect, radius, onClick }: ImageTileProps) {
     >
       <img
         src={image.src}
-        alt={image.alt}
+        alt=""
         loading="lazy"
         decoding="async"
+        onError={onError}
         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
       />
     </button>
@@ -146,15 +180,10 @@ interface LightboxProps {
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
+  onError: () => void;
 }
 
-/**
- * Lightbox — bespoke fullscreen overlay (not shadcn <Dialog>) because
- * the standard dialog constrains max-width and adds padding + close
- * button that fight the "edge-to-edge image on black" layout we want.
- * Uses the same open animation vocabulary though.
- */
-function Lightbox({ image, index, total, onClose, onPrev, onNext }: LightboxProps) {
+function Lightbox({ image, index, total, onClose, onPrev, onNext, onError }: LightboxProps) {
   return (
     <div
       role="dialog"
@@ -163,15 +192,14 @@ function Lightbox({ image, index, total, onClose, onPrev, onNext }: LightboxProp
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in-0 duration-200"
       onClick={onClose}
     >
-      {/* Image */}
       <img
         src={image.src}
         alt={image.alt}
+        onError={onError}
         className="max-h-[90vh] max-w-[92vw] rounded-lg object-contain shadow-2xl animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       />
 
-      {/* Close */}
       <button
         type="button"
         onClick={onClose}
@@ -181,7 +209,6 @@ function Lightbox({ image, index, total, onClose, onPrev, onNext }: LightboxProp
         <X size={20} strokeWidth={2} aria-hidden="true" />
       </button>
 
-      {/* Prev */}
       {total > 1 && (
         <button
           type="button"
@@ -196,7 +223,6 @@ function Lightbox({ image, index, total, onClose, onPrev, onNext }: LightboxProp
         </button>
       )}
 
-      {/* Next */}
       {total > 1 && (
         <button
           type="button"
@@ -211,7 +237,6 @@ function Lightbox({ image, index, total, onClose, onPrev, onNext }: LightboxProp
         </button>
       )}
 
-      {/* Counter */}
       {total > 1 && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-[12px] font-medium tabular-nums text-white/80">
           {index + 1} / {total}
