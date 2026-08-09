@@ -18,6 +18,7 @@ export interface TenantBrand {
   slug: string;
   name: string;
   logo_url: string | null;
+  favicon_url: string | null;
   theme: TenantBrandTheme;
   tagline: string | null;
   about_md: string | null;

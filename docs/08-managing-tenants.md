@@ -110,6 +110,50 @@ Design constraints:
 
 If `logo_url` is `NULL`, the template falls back to a colored square with the brand's first letter — driven by `--primary` so it inherits the brand color.
 
+## Change the favicon
+
+Every page emits `<link rel="icon">` + `<link rel="apple-touch-icon">` pointing at the brand's favicon. Resolution order:
+
+1. `template_brands.favicon_url` — the per-brand override
+2. `template_brands.logo_url` — falls back to the main logo (browsers scale to 32px automatically)
+3. `/favicon.svg` — the generic MySite default shipped in the template's `public/` folder
+
+Convention for uploaded favicons: `assets/favicons/<brand-slug>.svg` in Supabase Storage.
+
+### Upload via curl (SVG recommended — scales perfectly)
+
+```bash
+SUPABASE_URL="https://tkltfqshwwxykxhxthem.supabase.co"
+SERVICE_KEY="<paste service_role key>"
+
+# 64x64 SVG works everywhere — Chrome/Safari/Firefox/mobile
+curl -X POST "$SUPABASE_URL/storage/v1/object/assets/favicons/my-cafe.svg" \
+  -H "Authorization: Bearer $SERVICE_KEY" \
+  -H "Content-Type: image/svg+xml" \
+  -H "x-upsert: true" \
+  --data-binary @./favicon.svg
+
+# Then wire it up
+update template_brands
+   set favicon_url = 'https://tkltfqshwwxykxhxthem.supabase.co/storage/v1/object/public/assets/favicons/my-cafe.svg'
+ where slug = 'my-cafe';
+```
+
+### Quick-start template — colored square with brand initial
+
+Copy-paste this SVG, swap the two OKLCH values to match the brand's primary + primary-foreground, and change the letter:
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="oklch(0.68 0.17 40)"/>
+  <text x="32" y="42" text-anchor="middle"
+        font-family="Geist, -apple-system, sans-serif"
+        font-weight="700" font-size="32" fill="#fff">W</text>
+</svg>
+```
+
+This is exactly how the three seeded tenants (WBC, Stacks, Doublz) got their favicons — each is 64×64 SVG using their brand colors.
+
 ## Change the tagline and About text
 
 ```sql

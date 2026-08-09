@@ -31,6 +31,12 @@ const pixel = {
 
 const hasPixel = location.meta_pixel_ids && location.meta_pixel_ids.length > 0;
 const hasUmami = !!location.umami_website_id;
+
+// Favicon: per-brand override → falls back to logo_url (browsers scale
+// it) → finally to /favicon.svg shipped in public/. Rel `icon` with
+// rel `apple-touch-icon` alias so home-screen installs pick it up.
+const faviconHref = brand.favicon_url ?? brand.logo_url ?? "/favicon.svg";
+const faviconIsSvg = faviconHref.endsWith(".svg") || faviconHref.startsWith("/favicon.svg");
 ---
 
 <!doctype html>
@@ -42,6 +48,14 @@ const hasUmami = !!location.umami_website_id;
     <title>{seo.title}</title>
     <meta name="description" content={seo.description} />
     <link rel="canonical" href={seo.canonical} />
+
+    {/* Favicon — per-tenant with automatic fallback to logo, then default */}
+    <link
+      rel="icon"
+      type={faviconIsSvg ? "image/svg+xml" : undefined}
+      href={faviconHref}
+    />
+    <link rel="apple-touch-icon" href={faviconHref} />
 
     <meta property="og:title" content={seo.title} />
     <meta property="og:description" content={seo.description} />

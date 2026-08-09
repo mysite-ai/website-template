@@ -158,6 +158,7 @@ interface BrandJoinRow {
   slug: string;
   name: string;
   logo_url: string | null;
+  favicon_url: string | null;
   theme: unknown;
   tagline: string | null;
   about_md: string | null;
@@ -190,7 +191,7 @@ export async function resolveTenant(rawHost: string): Promise<TenantContext | nu
           promotion_name_cached, reward_description_cached,
           umami_website_id, meta_pixel_ids, gallery, menu,
           brand:template_brands!inner (
-            id, org_id, slug, name, logo_url, theme, tagline, about_md,
+            id, org_id, slug, name, logo_url, favicon_url, theme, tagline, about_md,
             organization:template_organizations!inner (
               id, slug, name, default_locale
             )
@@ -220,6 +221,7 @@ export async function resolveTenant(rawHost: string): Promise<TenantContext | nu
     slug: data.location.brand.slug,
     name: data.location.brand.name,
     logo_url: data.location.brand.logo_url,
+    favicon_url: data.location.brand.favicon_url,
     theme: coerceTheme(data.location.brand.theme),
     tagline: data.location.brand.tagline,
     about_md: data.location.brand.about_md,
