@@ -18,7 +18,7 @@ create table if not exists public.template_organizations (
   slug           text not null unique
                  check (slug ~ '^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$'),
   name           text not null,
-  default_locale text not null default 'pl',
+  default_locale text not null default 'en',
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now()
 );

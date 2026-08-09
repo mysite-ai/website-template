@@ -40,8 +40,6 @@ export default function MenuBrowser({ menu }: Props) {
     el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const currencyDefault = menu.currency_default;
-
   return (
     <div>
       <div
@@ -72,7 +70,6 @@ export default function MenuBrowser({ menu }: Props) {
           <CategorySection
             key={cat.id}
             category={cat}
-            currencyDefault={currencyDefault}
             registerRef={(el) => {
               sectionsRef.current[cat.id] = el;
             }}
@@ -85,11 +82,10 @@ export default function MenuBrowser({ menu }: Props) {
 
 interface CategorySectionProps {
   category: MenuCategory;
-  currencyDefault: Menu["currency_default"];
   registerRef: (el: HTMLDivElement | null) => void;
 }
 
-function CategorySection({ category, currencyDefault, registerRef }: CategorySectionProps) {
+function CategorySection({ category, registerRef }: CategorySectionProps) {
   return (
     <section
       ref={registerRef}
@@ -106,7 +102,7 @@ function CategorySection({ category, currencyDefault, registerRef }: CategorySec
 
       <ul className="mt-3 space-y-2">
         {category.items.map((item) => (
-          <Item key={item.id} item={item} currencyDefault={currencyDefault} />
+          <Item key={item.id} item={item} />
         ))}
       </ul>
     </section>
@@ -115,10 +111,9 @@ function CategorySection({ category, currencyDefault, registerRef }: CategorySec
 
 interface ItemProps {
   item: MenuItem;
-  currencyDefault: Menu["currency_default"];
 }
 
-function Item({ item, currencyDefault }: ItemProps) {
+function Item({ item }: ItemProps) {
   const priceLabel = useMemo(() => {
     if (!item.price) return null;
     return formatMoney(item.price);
@@ -141,7 +136,7 @@ function Item({ item, currencyDefault }: ItemProps) {
           {priceLabel ? (
             <span className="text-sm font-semibold tabular-nums whitespace-nowrap">{priceLabel}</span>
           ) : (
-            <span className="text-xs text-muted-foreground uppercase">{currencyDefault} — cena rynkowa</span>
+            <span className="text-xs text-muted-foreground uppercase">Market price</span>
           )}
         </div>
         {item.description && (

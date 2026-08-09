@@ -36,7 +36,7 @@ export function buildLocationSeo(input: LocationSeoInput): LocationSeoResult {
   const description =
     input.description ??
     brand.tagline ??
-    `${displayName}${location.city ? ` w ${location.city}` : ""}. Menu, godziny, dojazd i promocje.`;
+    `${displayName}${location.city ? ` in ${location.city}` : ""}. Menu, hours, directions, and rewards.`;
   const canonical = `${baseUrl(primaryHostname)}${path.startsWith("/") ? path : `/${path}`}`;
 
   const jsonLd = JSON.stringify(buildJsonLd(tenant, canonical, displayName, description));

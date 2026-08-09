@@ -71,7 +71,7 @@ export function shareQrImage(input: ShareInput) {
   const bottomY = qrY + qrSize + 50;
   ctx.fillStyle = "#171717";
   ctx.font = "600 18px system-ui, -apple-system, sans-serif";
-  ctx.fillText("Pokaż ten kod w kawiarni", w / 2, bottomY);
+  ctx.fillText("Show this code at the counter", w / 2, bottomY);
 
   ctx.fillStyle = "#a3a3a3";
   ctx.font = "14px system-ui, -apple-system, sans-serif";

@@ -62,7 +62,7 @@ Backend already accepts most keys; check `attribution-autopilot/src/users/dto/cr
 
 ## i18n (not in v1)
 
-The template is Polish-only in v1. When adding `astro-i18n`:
+The template ships with English as the default locale (`template_organizations.default_locale = 'en'`). Sites can opt into other languages by overriding the column per-org. When adding `astro-i18n`:
 
 - Keep the `default_locale` on `template_organizations` and use it in `<html lang>`.
 - Add a per-brand or per-org locale override on `template_brands` if a specific brand needs a different language across all its locations.

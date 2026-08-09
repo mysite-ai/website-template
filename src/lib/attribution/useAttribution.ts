@@ -100,7 +100,7 @@ export function useAttribution(location: AttributionLocation | null) {
     async (meta?: RegisterMeta): Promise<QrUser | null> => {
       setError(null);
       if (!location) {
-        setError("Brak konfiguracji promocji.");
+        setError("Promotion is not configured.");
         return null;
       }
 
@@ -125,7 +125,7 @@ export function useAttribution(location: AttributionLocation | null) {
         try {
           const data = await createUser(buildBody(location, meta));
           if ("status" in data && data.status === "exists") {
-            setError(data.message ?? "Numer telefonu jest już zarejestrowany.");
+            setError(data.message ?? "This phone number is already registered.");
             return null;
           }
           const registered = data as QrUser;
@@ -140,7 +140,7 @@ export function useAttribution(location: AttributionLocation | null) {
           const message =
             err instanceof Error && err.message
               ? err.message
-              : "Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.";
+              : "Can't reach the server. Check your connection and try again.";
           setError(message);
           return null;
         } finally {
@@ -179,7 +179,7 @@ export function useAttribution(location: AttributionLocation | null) {
     async (phoneNumber: string, meta?: SavePhoneMeta): Promise<boolean> => {
       setError(null);
       if (!user) {
-        setError("Najpierw wygeneruj kod QR.");
+        setError("Generate a QR code first.");
         return false;
       }
       try {
@@ -215,7 +215,7 @@ export function useAttribution(location: AttributionLocation | null) {
         const message =
           err instanceof Error && err.message
             ? err.message
-            : "Nie udało się zapisać numeru. Spróbuj ponownie.";
+            : "Couldn't save the number. Please try again.";
         setError(message);
         return false;
       }

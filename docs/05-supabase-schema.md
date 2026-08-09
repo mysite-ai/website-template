@@ -114,38 +114,38 @@ Copy-paste template for operators:
 ```json
 {
   "version": 1,
-  "currency_default": "PLN",
+  "currency_default": "USD",
   "categories": [
     {
       "id": "coffee",
-      "name": "Kawa",
-      "description": "Ziarna Świeżo palone lokalnie.",
+      "name": "Coffee",
+      "description": "Locally roasted, single-origin.",
       "items": [
         {
           "id": "flat-white",
           "name": "Flat White",
-          "description": "Podwójne espresso + spienione mleko.",
-          "price": { "amount": 18, "currency": "PLN" },
+          "description": "Double ristretto, silky steamed milk.",
+          "price": { "amount": 5, "currency": "USD" },
           "tags": ["new"],
           "allergens": ["milk"]
         },
         {
           "id": "matcha-latte",
           "name": "Matcha Latte",
-          "price": { "amount": 22, "currency": "PLN" },
+          "price": { "amount": 6, "currency": "USD" },
           "tags": ["vegan"]
         }
       ]
     },
     {
-      "id": "breakfast",
-      "name": "Śniadania",
+      "id": "brunch",
+      "name": "Brunch",
       "items": [
         {
           "id": "shakshuka",
           "name": "Shakshuka",
-          "description": "Jajka duszone w sosie pomidorowym, feta, kolendra.",
-          "price": { "amount": 34, "currency": "PLN" }
+          "description": "Two eggs poached in spiced tomato sauce, feta, herbs.",
+          "price": { "amount": 16, "currency": "USD" }
         }
       ]
     }
@@ -158,7 +158,7 @@ Constraints (validator will reject otherwise):
 - `version` MUST be `1`.
 - `currency_default` and every `price.currency` MUST be one of `"PLN" | "EUR" | "USD"`.
 - Every category and item needs a stable `id` (URL-safe slug) and a `name`.
-- `price` is optional — omit for market-price / seasonal items (renders as "cena rynkowa").
+- `price` is optional — omit for market-price / seasonal items (renders as "Market price").
 - Allowed `tags`: `"vegan" | "vegetarian" | "gluten-free" | "spicy" | "new"`.
 - `allergens` is free-form.
 

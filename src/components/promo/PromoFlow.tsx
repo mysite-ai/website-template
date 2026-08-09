@@ -100,8 +100,8 @@ export default function PromoFlow(props: PromoFlowProps) {
   };
 
   const rewardLabel =
-    rewardDescription ?? user?.first_reward_description ?? "Twój kod rabatowy";
-  const promotionLabel = promotionName ?? user?.promotion_name ?? "Promocja lojalnościowa";
+    rewardDescription ?? user?.first_reward_description ?? "Your reward code";
+  const promotionLabel = promotionName ?? user?.promotion_name ?? "Loyalty program";
   const fileNameSlug = brandSlug || "mysite";
 
   const saveQr = (canvasId: string, rewardText: string) =>
@@ -124,7 +124,7 @@ export default function PromoFlow(props: PromoFlowProps) {
           data-umami-event-target="promo-page"
         >
           <ArrowLeft size={18} aria-hidden="true" />
-          Powrót
+          Back
         </a>
 
         <div className="mt-6 text-center">
@@ -144,7 +144,7 @@ export default function PromoFlow(props: PromoFlowProps) {
             {promotionLabel}
           </h1>
           <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
-            Zeskanuj kod QR w kawiarni, żeby odebrać nagrodę.
+            Scan this QR code at the counter to claim your reward.
           </p>
         </div>
 
@@ -179,11 +179,11 @@ export default function PromoFlow(props: PromoFlowProps) {
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold shadow-lg hover:scale-105 transition-transform disabled:opacity-70 disabled:cursor-progress"
                 >
                   {registering ? (
-                    <span className="animate-pulse">Generuję…</span>
+                    <span className="animate-pulse">Generating…</span>
                   ) : (
                     <>
                       <Sparkles size={18} aria-hidden="true" />
-                      Odkryj swój kod
+                      Reveal your code
                     </>
                   )}
                 </button>
@@ -191,7 +191,7 @@ export default function PromoFlow(props: PromoFlowProps) {
             </div>
 
             <p className="text-xs text-muted-foreground text-center">
-              Kliknij, żeby odblokować osobisty kod
+              Tap to unlock your personal code
             </p>
 
             {error && <ErrorBanner error={error} onDismiss={clearError} />}
@@ -214,7 +214,7 @@ export default function PromoFlow(props: PromoFlowProps) {
                 />
               </div>
               <p className="text-xs text-muted-foreground mt-3">
-                Pokaż ten kod w kawiarni, żeby odebrać nagrodę
+                Show this code at the counter to claim your reward
               </p>
               <button
                 type="button"
@@ -223,14 +223,14 @@ export default function PromoFlow(props: PromoFlowProps) {
                 data-umami-event-target="promo-revealed"
                 className="mt-4 w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:scale-[1.01] transition-transform"
               >
-                <Share2 size={16} aria-hidden="true" /> Zapisz do galerii
+                <Share2 size={16} aria-hidden="true" /> Save to photos
               </button>
             </div>
 
             <div className="map-card p-5 sm:p-6">
-              <p className="text-lg font-semibold text-center mb-1">Zapisz swój numer</p>
+              <p className="text-lg font-semibold text-center mb-1">Save your number</p>
               <p className="text-sm text-muted-foreground text-center mb-4">
-                Odbierzesz przypomnienia o nowych nagrodach
+                Get notified when new rewards unlock
               </p>
               <PhoneField
                 value={phoneInput}
@@ -241,7 +241,7 @@ export default function PromoFlow(props: PromoFlowProps) {
               />
               {error && <ErrorBanner error={error} onDismiss={clearError} />}
               <p className="text-xs text-muted-foreground mt-3 text-center">
-                🔒 Tylko do nagród. Zero spamu.
+                🔒 Rewards only. Zero spam.
               </p>
             </div>
           </div>
@@ -259,20 +259,20 @@ export default function PromoFlow(props: PromoFlowProps) {
                   <p className="text-sm font-semibold">
                     {typeof localStorage !== "undefined" ? localStorage.getItem("qr_user_phone") ?? "—" : "—"}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">Twój numer · kod przypisany</p>
+                  <p className="text-[10px] text-muted-foreground">Your number · code linked</p>
                 </div>
               </div>
               <div className="pill">
-                <Check size={12} aria-hidden="true" /> Aktywny
+                <Check size={12} aria-hidden="true" /> Active
               </div>
             </div>
 
             {progress && (
               <div className="map-card p-4">
                 <div className="flex justify-between text-xs mb-2">
-                  <span className="text-muted-foreground font-medium">Twój postęp</span>
+                  <span className="text-muted-foreground font-medium">Your progress</span>
                   <span className="font-semibold">
-                    {progress.total_visits} / {progress.rewards_total} wizyt
+                    {progress.total_visits} / {progress.rewards_total} visits
                   </span>
                 </div>
                 <div className="h-2 rounded-full bg-muted overflow-hidden">
@@ -296,7 +296,7 @@ export default function PromoFlow(props: PromoFlowProps) {
                   {reward.unlocked ? (
                     <>
                       <p className="text-sm font-semibold line-through opacity-70">{reward.description}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Zrealizowane</p>
+                      <p className="text-xs text-muted-foreground mt-1">Redeemed</p>
                     </>
                   ) : isNext ? (
                     <>
@@ -310,20 +310,20 @@ export default function PromoFlow(props: PromoFlowProps) {
                       </div>
                       <p className="text-base font-semibold mt-3">{reward.description}</p>
                       <p className="text-xs text-primary font-medium mt-1">
-                        Pokaż ten kod w kawiarni
+                        Show this code at the counter
                       </p>
                       <button
                         type="button"
                         onClick={() => saveQr(`qr-card-${i}`, reward.description)}
                         className="mt-3 w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold"
                       >
-                        <Share2 size={14} aria-hidden="true" /> Zapisz do galerii
+                        <Share2 size={14} aria-hidden="true" /> Save to photos
                       </button>
                     </>
                   ) : (
                     <>
-                      <p className="text-sm text-muted-foreground">🔒 Wizyta #{reward.visit_number}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Odblokujesz po użyciu poprzednich kodów</p>
+                      <p className="text-sm text-muted-foreground">🔒 Visit #{reward.visit_number}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Unlocks after previous codes are redeemed</p>
                     </>
                   )}
                 </div>
@@ -376,7 +376,7 @@ function PhoneField({ value, onChange, onSubmit, isValid, saving }: PhoneFieldPr
           placeholder="500 000 000"
           maxLength={11}
           className="flex-1 px-3 py-2 text-lg font-medium bg-transparent outline-none placeholder:text-muted-foreground"
-          aria-label="Numer telefonu"
+          aria-label="Phone number"
         />
         {value.length > 0 && (
           <div className="flex items-center pr-3">
@@ -398,7 +398,7 @@ function PhoneField({ value, onChange, onSubmit, isValid, saving }: PhoneFieldPr
         data-umami-event-target="promo-phone-form"
         className="w-full h-14 rounded-xl bg-primary text-primary-foreground text-base font-semibold inline-flex items-center justify-center gap-2 hover:scale-[1.01] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {saving ? "…" : "Zapisz numer"}
+        {saving ? "…" : "Save number"}
       </button>
     </div>
   );

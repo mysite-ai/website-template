@@ -25,10 +25,10 @@ interface Tile {
 }
 
 const tiles: Tile[] = [
-  { icon: Phone, label: "Zadzwoń", href: phoneHref, ariaLabel: `Zadzwoń: ${formatPhone(location.phone)}`, umamiEvent: "click-call" },
-  { icon: Navigation, label: "Dojazd", href: directionsHref, ariaLabel: "Dojazd", umamiEvent: "click-directions" },
+  { icon: Phone, label: "Call", href: phoneHref, ariaLabel: `Call: ${formatPhone(location.phone)}`, umamiEvent: "click-call" },
+  { icon: Navigation, label: "Directions", href: directionsHref, ariaLabel: "Directions", umamiEvent: "click-directions" },
   { icon: UtensilsCrossed, label: "Menu", href: "/menu", ariaLabel: "Menu", umamiEvent: "click-menu" },
-  { icon: ShoppingBag, label: "Zamów", href: deliveryHref, ariaLabel: "Zamów online", umamiEvent: "click-delivery" },
+  { icon: ShoppingBag, label: "Order", href: deliveryHref, ariaLabel: "Order online", umamiEvent: "click-delivery" },
 ];
 ---
 

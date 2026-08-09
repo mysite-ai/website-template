@@ -12,9 +12,9 @@ const { brand, location } = tenant;
 const displayName = brand.slug === location.slug ? brand.name : `${brand.name} · ${location.name}`;
 
 const links: Array<{ href: string; label: string }> = [
-  { href: "/", label: "Start" },
+  { href: "/", label: "Home" },
   { href: "/menu", label: "Menu" },
-  { href: "/promocja", label: "Promocja" },
+  { href: "/promocja", label: "Rewards" },
 ];
 ---
 
@@ -31,7 +31,7 @@ const links: Array<{ href: string; label: string }> = [
       <span class="text-sm font-semibold tracking-tight">{displayName}</span>
     </a>
 
-    <nav aria-label="Główna nawigacja">
+    <nav aria-label="Main navigation">
       <ul class="flex items-center gap-1">
         {links.map((link) => (
           <li>

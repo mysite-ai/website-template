@@ -17,18 +17,18 @@ const weekend = location.weekend_hours;
     <div class="map-card p-5 sm:p-6">
       <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         <Clock size={14} aria-hidden="true" />
-        <span>Godziny otwarcia</span>
+        <span>Opening hours</span>
       </div>
       <div class="mt-3 space-y-1.5 text-sm">
         {weekday && (
           <div class="flex justify-between">
-            <span class="text-muted-foreground">Pon – Pt</span>
+            <span class="text-muted-foreground">Mon – Fri</span>
             <span class="font-medium">{weekday}</span>
           </div>
         )}
         {weekend && (
           <div class="flex justify-between">
-            <span class="text-muted-foreground">Sob – Ndz</span>
+            <span class="text-muted-foreground">Sat – Sun</span>
             <span class="font-medium">{weekend}</span>
           </div>
         )}

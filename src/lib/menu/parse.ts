@@ -51,7 +51,7 @@ export function parseMenu(raw: unknown): Menu | null {
   return result.data;
 }
 
-export function formatMoney(price: { amount: number; currency: string }, locale = "pl-PL"): string {
+export function formatMoney(price: { amount: number; currency: string }, locale = "en-US"): string {
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency: price.currency,

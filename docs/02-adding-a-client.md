@@ -7,7 +7,7 @@ Before you start, verify:
 1. **`mysite.so` is set up in Vercel** with wildcard entries `*.mysite.so` (and `*.*.mysite.so` if the multi-location TLS pre-req has been confirmed — see `01-architecture.md` note).
 2. **CORS 60-second cache lag** — every hostname you add must ALSO be inserted into `attribution-autopilot`'s `location_origins`. `LocationsService.getAllOriginsCached()` caches the origin list for 60 seconds, so wait ~60s after the INSERT before smoke-testing `/promocja` or CORS will fail with a confusing error.
 
-## Pattern A — Single-location (e.g. Karat)
+## Pattern A — Single-location (e.g. Sawa Sushi)
 
 For single-location clients `brand.slug === location.slug` so the two concepts collapse. The hostname is `<slug>.mysite.so`.
 
@@ -16,16 +16,16 @@ For single-location clients `brand.slug === location.slug` so the two concepts c
 ```sql
 -- 1. Org
 insert into template_organizations (slug, name)
-values ('karat', 'Karat Sp. z o.o.')
+values ('sawa', 'Sawa Sushi LLC')
 returning id;
 -- ⇒ ORG_ID
 
 -- 2. Brand (brand.slug === location.slug for single-location)
 insert into template_brands (org_id, slug, name, tagline, about_md, theme)
 values (
-  'ORG_ID', 'karat', 'Karat',
-  'Kawa, ciasto i śniadania w Białymstoku.',
-  'O nas...\n\nDrugi paragraf.',
+  'ORG_ID', 'sawa', 'Sawa Sushi',
+  'Neighborhood sushi bar — hand-cut rolls, seasonal specials.',
+  'About us...\n\nSecond paragraph.',
   '{}'::jsonb  -- keep MySite grayscale, or {"primary":"oklch(...)"}
 )
 returning id;
@@ -46,31 +46,31 @@ insert into template_locations (
   umami_website_id, meta_pixel_ids,
   gallery, menu
 ) values (
-  'BRAND_ID', 'karat', 'Karat',
-  'ul. Sienkiewicza 5', 'Białystok', 'podlaskie', '15-092', 'PL',
-  53.1325, 23.1688,
-  '+48500000000', 'kontakt@karat.pl',
-  '08:00 – 20:00', '09:00 – 20:00',
+  'BRAND_ID', 'sawa', 'Sawa Sushi',
+  '888 W Foothill Blvd', 'Azusa', 'CA', '91702', 'US',
+  34.1336, -117.9076,
+  '+16265551234', 'hi@sawasushi.example',
+  'Mon–Fri 11:00 – 22:00', 'Sat–Sun 12:00 – 23:00',
   'https://www.google.com/maps/embed?pb=...',
-  'Karat, Sienkiewicza 5, Białystok',
-  'https://instagram.com/karatpl', null,
-  '[{"name":"Wolt","url":"https://wolt.com/..."}]'::jsonb,
+  'Sawa Sushi, 888 W Foothill Blvd, Azusa',
+  'https://instagram.com/sawasushi', null,
+  '[{"name":"DoorDash","url":"https://doordash.com/store/..."}]'::jsonb,
   '<promo_uuid_from_attribution>',
   '<campaign_uuid_from_attribution>',
   '<org_uuid_from_attribution>',
   '<location_uuid_from_attribution>',  -- ← used for CORS in step 2
   '01912345abcd', ARRAY['<pixel_id>']::text[],
-  '[{"src":"https://.../hero.jpg","alt":"Karat"}]'::jsonb,
-  '{"version":1,"currency_default":"PLN","categories":[]}'::jsonb  -- see 05-supabase-schema.md
+  '[{"src":"https://.../hero.jpg","alt":"Sawa Sushi"}]'::jsonb,
+  '{"version":1,"currency_default":"USD","categories":[]}'::jsonb  -- see 05-supabase-schema.md
 )
 returning id;
 -- ⇒ LOCATION_ID
 
 -- 4. Domain(s) — hostnames are exact-match, no www stripping.
 insert into template_domains (hostname, location_id, is_primary, kind) values
-  ('karat.mysite.so', 'LOCATION_ID', true,  'mysite_single'),
-  ('karat.pl',        'LOCATION_ID', false, 'custom'),
-  ('www.karat.pl',    'LOCATION_ID', false, 'custom');  -- separate row for www
+  ('sawa.mysite.so',    'LOCATION_ID', true,  'mysite_single'),
+  ('sawasushi.com',     'LOCATION_ID', false, 'custom'),
+  ('www.sawasushi.com', 'LOCATION_ID', false, 'custom');  -- separate row for www
 ```
 
 ### Step 2 — `attribution-autopilot` Supabase
@@ -79,9 +79,9 @@ For **each** hostname above, insert into `location_origins`:
 
 ```sql
 insert into location_origins (location_id, origin) values
-  ('<attribution_location_id from step 1>', 'https://karat.mysite.so'),
-  ('<attribution_location_id from step 1>', 'https://karat.pl'),
-  ('<attribution_location_id from step 1>', 'https://www.karat.pl');
+  ('<attribution_location_id from step 1>', 'https://sawa.mysite.so'),
+  ('<attribution_location_id from step 1>', 'https://sawasushi.com'),
+  ('<attribution_location_id from step 1>', 'https://www.sawasushi.com');
 ```
 
 **Do not** touch `DEFAULT_ALLOWED_ORIGIN_PATTERNS` in `src/common/origin-allowlist.ts` — that path requires a backend redeploy and defeats zero-code onboarding.
@@ -90,49 +90,49 @@ insert into location_origins (location_id, origin) values
 
 ### Step 3 — DNS + Vercel
 
-- `karat.mysite.so` — covered by the wildcard `*.mysite.so`. Nothing to do.
-- `karat.pl` — in Vercel dashboard, add `karat.pl` (and `www.karat.pl`) to the `website-template` project. Ask the client to CNAME `www.karat.pl` → `cname.vercel-dns.com` and A-record `karat.pl` to Vercel's IPs (Vercel prints them in the UI).
+- `sawa.mysite.so` — covered by the wildcard `*.mysite.so`. Nothing to do.
+- `sawasushi.com` — in Vercel dashboard, add `sawasushi.com` (and `www.sawasushi.com`) to the `website-template` project. Ask the client to CNAME `www.sawasushi.com` → `cname.vercel-dns.com` and A-record `sawasushi.com` to Vercel's IPs (Vercel prints them in the UI).
 
-## Pattern B — Multi-location (e.g. Doublz brand with Santa Fe)
+## Pattern B — Multi-location (e.g. Your Pie brand with Azusa location)
 
 Same three steps; the differences are (a) the domain shape uses two labels and (b) `brand.slug !== location.slug`.
 
 ### Step 1 — `website-template` Supabase
 
 ```sql
-insert into template_organizations (slug, name) values ('doublz', 'Doublz Sp. z o.o.') returning id;
+insert into template_organizations (slug, name) values ('yourpie', 'Your Pie Inc.') returning id;
 -- ⇒ ORG_ID
 
 insert into template_brands (org_id, slug, name, tagline, about_md)
-values ('ORG_ID', 'doublz', 'Doublz', 'Neapolitan pizza.', 'About...')
+values ('ORG_ID', 'yourpie', 'Your Pie', 'Neapolitan-style pizza, your way.', 'About...')
 returning id;
 -- ⇒ BRAND_ID
 
 -- One row PER location
 insert into template_locations (brand_id, slug, name, /* ... same fields ... */)
-values ('BRAND_ID', 'santafe', 'Doublz Santa Fe', /* ... */)
+values ('BRAND_ID', 'azusa', 'Your Pie Azusa', /* ... */)
 returning id;
--- ⇒ SANTAFE_ID
+-- ⇒ AZUSA_ID
 
 insert into template_domains (hostname, location_id, is_primary, kind) values
-  ('santafe.doublz.mysite.so', 'SANTAFE_ID', true,  'mysite_multi'),
-  ('santafe.doublz.mysite.co', 'SANTAFE_ID', false, 'custom');
+  ('azusa.yourpie.mysite.so', 'AZUSA_ID', true,  'mysite_multi'),
+  ('azusa.yourpie.com',       'AZUSA_ID', false, 'custom');
 ```
 
-**Do NOT** insert a row for `doublz.mysite.so` (bare brand root). The schema blocks it — the `template_domains_validate` trigger rejects `<slug>.mysite.so` unless `kind='mysite_single'`. Users hitting `doublz.mysite.so` see a 404.
+**Do NOT** insert a row for `yourpie.mysite.so` (bare brand root). The schema blocks it — the `template_domains_validate` trigger rejects `<slug>.mysite.so` unless `kind='mysite_single'`. Users hitting `yourpie.mysite.so` see a 404.
 
 ### Step 2 — `attribution-autopilot` Supabase
 
 ```sql
 insert into location_origins (location_id, origin) values
-  ('<santafe attribution_location_id>', 'https://santafe.doublz.mysite.so'),
-  ('<santafe attribution_location_id>', 'https://santafe.doublz.mysite.co');
+  ('<azusa attribution_location_id>', 'https://azusa.yourpie.mysite.so'),
+  ('<azusa attribution_location_id>', 'https://azusa.yourpie.com');
 ```
 
 ### Step 3 — DNS + Vercel
 
-- `santafe.doublz.mysite.so` — covered by `*.*.mysite.so` IF Vercel-issued TLS supports a two-label wildcard on the same project. If not, restructure to flat `santafe-doublz.mysite.so` (single-level wildcard, no code change needed).
-- `santafe.doublz.mysite.co` — add to Vercel project, client CNAMEs.
+- `azusa.yourpie.mysite.so` — covered by `*.*.mysite.so` IF Vercel-issued TLS supports a two-label wildcard on the same project. If not, restructure to flat `azusa-yourpie.mysite.so` (single-level wildcard, no code change needed).
+- `azusa.yourpie.com` — add to Vercel project, client CNAMEs.
 
 ## Adding an alias domain later
 
@@ -140,10 +140,10 @@ One row insert. That's it.
 
 ```sql
 insert into template_domains (hostname, location_id, is_primary, kind)
-values ('kawiarnia-karat.pl', '<karat location_id>', false, 'custom');
+values ('order.sawasushi.com', '<sawa location_id>', false, 'custom');
 
 insert into location_origins (location_id, origin)
-values ('<attribution_location_id>', 'https://kawiarnia-karat.pl');
+values ('<attribution_location_id>', 'https://order.sawasushi.com');
 ```
 
-Then add `kawiarnia-karat.pl` to the Vercel project and give the client the DNS instructions. Wait 60s. Done.
+Then add `order.sawasushi.com` to the Vercel project and give the client the DNS instructions. Wait 60s. Done.
