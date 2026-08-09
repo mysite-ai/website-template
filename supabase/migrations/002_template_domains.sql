@@ -6,9 +6,9 @@
 --   * hostnames are stored EXACT-MATCH, lowercased. `www.karat.pl` and
 --     `karat.pl` are separate rows.
 --   * exactly one primary domain per location (partial unique index).
---   * bare brand root like `doublz.mysite.so` is REJECTED at insert time
---     by a CHECK constraint. Every valid URL must resolve to a specific
---     location.
+--   * bare brand root like `doublz.mysite.social` is REJECTED at insert
+--     time by a CHECK constraint. Every valid URL must resolve to a
+--     specific location.
 --
 -- `kind` is metadata only and is not used for resolution.
 
@@ -17,9 +17,10 @@ create table if not exists public.template_domains (
               check (
                 hostname = lower(hostname)
                 and hostname ~ '^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$'
-                -- Reject `<slug>.mysite.so` — bare brand root. Multi-location
-                -- clients MUST use `<location>.<brand>.mysite.so`.
-                and hostname !~ '^[a-z0-9-]+\.mysite\.so$'
+                -- Reject `<slug>.mysite.social` — bare brand root.
+                -- Multi-location clients MUST use
+                -- `<location>.<brand>.mysite.social`.
+                and hostname !~ '^[a-z0-9-]+\.mysite\.social$'
               ),
   location_id uuid not null references public.template_locations(id) on delete cascade,
   is_primary  boolean not null default false,
@@ -37,7 +38,7 @@ create index if not exists template_domains_location_id_idx
   on public.template_domains(location_id);
 
 -- Escape hatch for the CHECK: a specific single-location client whose
--- domain happens to be `<slug>.mysite.so` is allowed because for
+-- domain happens to be `<slug>.mysite.social` is allowed because for
 -- SINGLE-location clients `brand.slug === location.slug`, so the two
 -- concepts collapse. The `mysite_single` kind labels that case.
 -- Enforced by trigger — the CHECK above intentionally blanket-rejects,
@@ -49,7 +50,7 @@ declare
   brand_slug text;
 begin
   -- Fast-path: not the ambiguous shape, nothing to do.
-  if new.hostname !~ '^[a-z0-9-]+\.mysite\.so$' then
+  if new.hostname !~ '^[a-z0-9-]+\.mysite\.social$' then
     return new;
   end if;
 
@@ -68,7 +69,7 @@ begin
   end if;
 
   if loc_slug <> brand_slug then
-    raise exception 'hostname % requires brand.slug (%) = location.slug (%); use <location>.<brand>.mysite.so for multi-location brands', new.hostname, brand_slug, loc_slug;
+    raise exception 'hostname % requires brand.slug (%) = location.slug (%); use <location>.<brand>.mysite.social for multi-location brands', new.hostname, brand_slug, loc_slug;
   end if;
 
   return new;

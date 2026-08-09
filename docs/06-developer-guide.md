@@ -73,7 +73,7 @@ The template ships with English as the default locale (`template_organizations.d
 The resolver logs errors via `console.error` with the offending host. Common causes:
 
 - **404 on a hostname you just added** — 60s cache TTL. Wait or restart dev.
-- **404 on the bare brand root** (`doublz.mysite.so`) — this is correct behavior, not a bug. See `02-adding-a-client.md`.
+- **404 on the bare brand root** (`doublz.mysite.social`) — this is correct behavior, not a bug. See `02-adding-a-client.md`.
 - **500** — usually means Supabase env vars are missing. Check `.env`.
 
 To clear the resolver cache manually in dev, import `clearTenantCache()` from `@/lib/tenant/resolve` and call it from a temporary endpoint. In production a redeploy or the 60s natural TTL is how operators pick up changes.

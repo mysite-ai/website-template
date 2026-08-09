@@ -4,6 +4,8 @@
 
 > **Every request maps to exactly one row in `template_domains`. Everything else — brand, org, location, menu, promo — hangs off that row.**
 
+> **Read this first** for the mental model. For URL shapes / DNS / TLS setup, see `docs/07-domain-model.md`. For adding a new tenant, see `docs/02-adding-a-client.md`. For editing an existing tenant's content, see `docs/08-managing-tenants.md`.
+
 ## Request lifecycle
 
 ```

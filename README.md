@@ -12,26 +12,46 @@ npm run dev             # http://localhost:4321
 
 Set the `x-preview=1` cookie and visit `http://localhost:4321/?tenant=<location-slug>` to render any tenant locally without editing `/etc/hosts`. See `docs/06-developer-guide.md`.
 
+## Live smoke test
+
+- **Deploy**: [website-template-iota-one.vercel.app](https://website-template-iota-one.vercel.app)
+- **Tenant**: The White Bear Coffee — Marszałkowska (seeded via migrations 005–010)
+- **Loyalty**: wired to a dedicated smoke-test promotion in `attribution-autopilot` (real QR generation works)
+
+## Domain model
+
+Two wildcards in Vercel cover 90% of clients:
+
+- `*.mysite.social` → single-location sites (`karat.mysite.social`)
+- `*.*.mysite.social` → multi-location sites (`santafe.doublz.mysite.social`)
+
+Custom domains (`karat.pl`, `sawasushi.com`) are added per-client in the Vercel dashboard and inserted as rows in `template_domains`. `mysite.social` apex + bare brand roots (`doublz.mysite.social`) return **404** by design. Full model + TLS prerequisites in `docs/07-domain-model.md`.
+
 ## Adding a new client
 
 Two SQL inserts + one Vercel domain click. Site live in <5 minutes.
 
-- **Single-location** (e.g. `karat.mysite.so`, `karat.pl`) — pattern A in `docs/02-adding-a-client.md`.
-- **Multi-location** (e.g. `santafe.doublz.mysite.so`) — pattern B, same doc.
+- **Single-location** (e.g. `karat.mysite.social`, `karat.pl`) — pattern A in `docs/02-adding-a-client.md`.
+- **Multi-location** (e.g. `santafe.doublz.mysite.social`) — pattern B, same doc.
+
+## Managing an existing client
+
+Colors, logo, menu, hours, gallery, promo — all in Supabase, no code deploy needed. See `docs/08-managing-tenants.md` for copy-pasteable SQL.
 
 ## Where things live
 
-| Concern                       | File                                                |
-| ----------------------------- | --------------------------------------------------- |
-| Tenant resolution             | `src/middleware.ts`, `src/lib/tenant/resolve.ts`    |
-| Design tokens                 | `src/styles/tokens.css` (verbatim from admin)       |
-| Composition layer             | `src/styles/components.css`                         |
-| Sections                      | `src/components/sections/*.astro`                   |
-| Menu                          | `src/components/menu/MenuBrowser.tsx`               |
-| Promo/QR flow                 | `src/components/promo/PromoFlow.tsx`                |
-| Attribution client            | `src/lib/attribution/*.ts`                          |
-| Docs                          | `docs/`                                             |
-| Migrations                    | `supabase/migrations/`                              |
+| Concern | File |
+| --- | --- |
+| Tenant resolution | `src/middleware.ts`, `src/lib/tenant/resolve.ts` |
+| Design tokens | `src/styles/tokens.css` (verbatim from admin) |
+| Composition layer | `src/styles/components.css` |
+| shadcn primitives | `src/components/ui/*` (base-nova style, `@base-ui/react`) |
+| Sections | `src/components/sections/*.astro` |
+| Menu | `src/components/menu/MenuBrowser.tsx` |
+| Promo/QR flow | `src/components/promo/PromoFlow.tsx`, `PromoBanner.tsx` |
+| Attribution client | `src/lib/attribution/*.ts` |
+| Docs | `docs/` |
+| Migrations | `supabase/migrations/` |
 
 ## Docs
 
@@ -41,6 +61,8 @@ Two SQL inserts + one Vercel domain click. Site live in <5 minutes.
 - `docs/04-attribution-integration.md` — endpoints, backend contract, CORS
 - `docs/05-supabase-schema.md` — ER diagram, migrations, menu JSON template
 - `docs/06-developer-guide.md` — conventions, preview cookie, i18n roadmap
+- `docs/07-domain-model.md` — every URL shape, TLS prerequisites, DNS
+- `docs/08-managing-tenants.md` — how to change colors/logo/menu/promo per tenant
 
 ## Success criteria
 

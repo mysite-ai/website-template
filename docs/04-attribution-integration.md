@@ -79,7 +79,7 @@ This is `attribution-autopilot`'s only required backend change to unblock the te
 - Rename `getFirstRewardCode(campaignId)` → `getFirstReward(campaignId)` returning `{ pos_code, description }`, keeping a thin `getFirstRewardCode` wrapper for other callers.
 - Return `promotion_name: promotion.name` and `first_reward_description: firstReward.description` on the `created` branch.
 
-Zero new endpoints. Zero CORS/origin changes. `GET /api/promotions/*` is admin-origin-gated and can't be called from a `karat.mysite.so` origin.
+Zero new endpoints. Zero CORS/origin changes. `GET /api/promotions/*` is admin-origin-gated and can't be called from a `karat.mysite.social` origin.
 
 ## Pre-reveal display strings
 

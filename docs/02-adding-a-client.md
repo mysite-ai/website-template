@@ -4,12 +4,14 @@ Two patterns, both zero-code. Site is live in <5 minutes.
 
 Before you start, verify:
 
-1. **`mysite.so` is set up in Vercel** with wildcard entries `*.mysite.so` (and `*.*.mysite.so` if the multi-location TLS pre-req has been confirmed — see `01-architecture.md` note).
+1. **`mysite.social` is set up in Vercel** with wildcard entries `*.mysite.social` and `*.*.mysite.social` — see `docs/07-domain-model.md` for the full setup and the TLS caveat for the nested wildcard.
 2. **CORS 60-second cache lag** — every hostname you add must ALSO be inserted into `attribution-autopilot`'s `location_origins`. `LocationsService.getAllOriginsCached()` caches the origin list for 60 seconds, so wait ~60s after the INSERT before smoke-testing `/promocja` or CORS will fail with a confusing error.
+
+> Need to *change* things on an existing tenant (colors, menu, images, promo)? That's `docs/08-managing-tenants.md`. This doc is only about **onboarding a new tenant**.
 
 ## Pattern A — Single-location (e.g. Sawa Sushi)
 
-For single-location clients `brand.slug === location.slug` so the two concepts collapse. The hostname is `<slug>.mysite.so`.
+For single-location clients `brand.slug === location.slug` so the two concepts collapse. The hostname is `<slug>.mysite.social`.
 
 ### Step 1 — `website-template` Supabase
 
@@ -68,7 +70,7 @@ returning id;
 
 -- 4. Domain(s) — hostnames are exact-match, no www stripping.
 insert into template_domains (hostname, location_id, is_primary, kind) values
-  ('sawa.mysite.so',    'LOCATION_ID', true,  'mysite_single'),
+  ('sawa.mysite.social',    'LOCATION_ID', true,  'mysite_single'),
   ('sawasushi.com',     'LOCATION_ID', false, 'custom'),
   ('www.sawasushi.com', 'LOCATION_ID', false, 'custom');  -- separate row for www
 ```
@@ -79,7 +81,7 @@ For **each** hostname above, insert into `location_origins`:
 
 ```sql
 insert into location_origins (location_id, origin) values
-  ('<attribution_location_id from step 1>', 'https://sawa.mysite.so'),
+  ('<attribution_location_id from step 1>', 'https://sawa.mysite.social'),
   ('<attribution_location_id from step 1>', 'https://sawasushi.com'),
   ('<attribution_location_id from step 1>', 'https://www.sawasushi.com');
 ```
@@ -90,7 +92,7 @@ insert into location_origins (location_id, origin) values
 
 ### Step 3 — DNS + Vercel
 
-- `sawa.mysite.so` — covered by the wildcard `*.mysite.so`. Nothing to do.
+- `sawa.mysite.social` — covered by the wildcard `*.mysite.social`. Nothing to do.
 - `sawasushi.com` — in Vercel dashboard, add `sawasushi.com` (and `www.sawasushi.com`) to the `website-template` project. Ask the client to CNAME `www.sawasushi.com` → `cname.vercel-dns.com` and A-record `sawasushi.com` to Vercel's IPs (Vercel prints them in the UI).
 
 ## Pattern B — Multi-location (e.g. Your Pie brand with Azusa location)
@@ -115,23 +117,23 @@ returning id;
 -- ⇒ AZUSA_ID
 
 insert into template_domains (hostname, location_id, is_primary, kind) values
-  ('azusa.yourpie.mysite.so', 'AZUSA_ID', true,  'mysite_multi'),
+  ('azusa.yourpie.mysite.social', 'AZUSA_ID', true,  'mysite_multi'),
   ('azusa.yourpie.com',       'AZUSA_ID', false, 'custom');
 ```
 
-**Do NOT** insert a row for `yourpie.mysite.so` (bare brand root). The schema blocks it — the `template_domains_validate` trigger rejects `<slug>.mysite.so` unless `kind='mysite_single'`. Users hitting `yourpie.mysite.so` see a 404.
+**Do NOT** insert a row for `yourpie.mysite.social` (bare brand root). The schema blocks it — the `template_domains_validate` trigger rejects `<slug>.mysite.social` unless `kind='mysite_single'`. Users hitting `yourpie.mysite.social` see a 404.
 
 ### Step 2 — `attribution-autopilot` Supabase
 
 ```sql
 insert into location_origins (location_id, origin) values
-  ('<azusa attribution_location_id>', 'https://azusa.yourpie.mysite.so'),
+  ('<azusa attribution_location_id>', 'https://azusa.yourpie.mysite.social'),
   ('<azusa attribution_location_id>', 'https://azusa.yourpie.com');
 ```
 
 ### Step 3 — DNS + Vercel
 
-- `azusa.yourpie.mysite.so` — covered by `*.*.mysite.so` IF Vercel-issued TLS supports a two-label wildcard on the same project. If not, restructure to flat `azusa-yourpie.mysite.so` (single-level wildcard, no code change needed).
+- `azusa.yourpie.mysite.social` — covered by `*.*.mysite.social` IF Vercel-issued TLS supports a two-label wildcard on the same project. If not, restructure to flat `azusa-yourpie.mysite.social` (single-level wildcard, no code change needed).
 - `azusa.yourpie.com` — add to Vercel project, client CNAMEs.
 
 ## Adding an alias domain later

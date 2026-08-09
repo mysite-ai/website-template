@@ -81,7 +81,7 @@ erDiagram
 
 `attribution-autopilot` has no `brands` table — its hierarchy is `organizations → locations` directly. `template_brands` is a **new modeling decision** specific to this template, introduced to solve two problems that don't exist on the attribution side:
 
-1. URL shape for multi-location brands (`<location>.<brand>.mysite.so`).
+1. URL shape for multi-location brands (`<location>.<brand>.mysite.social`).
 2. Shared design tokens + copy across locations under one brand.
 
 Don't describe it as "mirroring the attribution schema" — it isn't.

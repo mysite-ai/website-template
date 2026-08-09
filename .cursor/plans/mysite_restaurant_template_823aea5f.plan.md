@@ -43,7 +43,7 @@ isProject: false
 
 ## Goals
 
-- **One codebase, hundreds of sites.** Single Vercel deploy, wildcard domains (`*.mysite.so` and `*.*.mysite.so`), host-based tenant resolution. Note: `mysite.so` is the customer-facing site domain; `mysite.cx` remains the internal ops/API domain (`attribution.mysite.cx`) — they are intentionally separate.
+- **One codebase, hundreds of sites.** Single Vercel deploy, wildcard domains (`*.mysite.social` and `*.*.mysite.social`), host-based tenant resolution. Note: `mysite.social` is the customer-facing site domain; `mysite.cx` remains the internal ops/API domain (`attribution.mysite.cx`) — they are intentionally separate.
 - **Design language.** MySite's shadcn `base-nova` tokens (Geist, OKLCH neutrals) applied through Apple-Maps composition patterns (translucent floating panels, action tiles, map cards).
 - **Trivially onboardable.** Adding a new client = insert rows in Supabase + point DNS. Zero code changes.
 - **Developer-ready.** Small, obvious file tree; every module <200 LOC; typed end-to-end; a single `docs/` folder that a new dev can read in 15 minutes.
@@ -57,26 +57,26 @@ isProject: false
 - **Fonts**: `@fontsource-variable/geist` (Geist Variable) as `--font-sans`.
 - **Supabase** (NEW dedicated project) for tenant content (`@supabase/supabase-js`, service role on server only, publishable key never shipped).
 - **TypeScript 5**, strict.
-- **Deployment**: single Vercel project, wildcard domains `*.mysite.so` + `*.*.mysite.so` (nested for multi-location brands) + custom domains attached per-client.
+- **Deployment**: single Vercel project, wildcard domains `*.mysite.social` + `*.*.mysite.social` (nested for multi-location brands) + custom domains attached per-client.
 
 ## Hosting / Domain Model
 
 > **Two prerequisites to verify before shipping:**
-> 1. **`mysite.so` domain ownership.** `mysite.so` does not appear anywhere in `attribution-autopilot` or `wbc-v2` today — every existing product surface is on `mysite.cx`. Confirm the `.so` domain is registered and pointed at Vercel before the wildcard-domain runbook is authored.
-> 2. **Vercel TLS for `*.*.mysite.so`.** Standard Let's Encrypt ACME wildcards cover one label only (`*.mysite.so` covers `karat.mysite.so`, **not** `santafe.doublz.mysite.so`). Verify with Vercel that automatic cert issuance supports a wildcard-of-wildcard on the same project. If not, restructure to flat `<location>-<brand>.mysite.so` (e.g. `santafe-doublz.mysite.so`) — this is a single-level wildcard and works with the same DB-driven resolution. Decide this before writing `docs/02-adding-a-client.md`.
+> 1. **`mysite.social` domain ownership.** `mysite.social` does not appear anywhere in `attribution-autopilot` or `wbc-v2` today — every existing product surface is on `mysite.cx`. Confirm the `.so` domain is registered and pointed at Vercel before the wildcard-domain runbook is authored.
+> 2. **Vercel TLS for `*.*.mysite.social`.** Standard Let's Encrypt ACME wildcards cover one label only (`*.mysite.social` covers `karat.mysite.social`, **not** `santafe.doublz.mysite.social`). Verify with Vercel that automatic cert issuance supports a wildcard-of-wildcard on the same project. If not, restructure to flat `<location>-<brand>.mysite.social` (e.g. `santafe-doublz.mysite.social`) — this is a single-level wildcard and works with the same DB-driven resolution. Decide this before writing `docs/02-adding-a-client.md`.
 
 The template supports two host patterns simultaneously, both resolved by the same middleware from the `template_domains` table:
 
-- **Single-location**: `<location>.mysite.so` — e.g. `karat.mysite.so`. For single-location clients, `brand.slug === location.slug` (they collapse). Custom domain: `karat.pl` or `www.karat.pl`.
-- **Multi-location**: `<location>.<brand>.mysite.so` — e.g. `santafe.doublz.mysite.so`. Custom domain: `santafe.doublz.mysite.co` (or any brand-owned subdomain).
-- **Brand root without a location** (`doublz.mysite.so`) → **404**. Every valid URL must resolve to a specific location. Documented as a deliberate rule in `docs/02-adding-a-client.md`.
+- **Single-location**: `<location>.mysite.social` — e.g. `karat.mysite.social`. For single-location clients, `brand.slug === location.slug` (they collapse). Custom domain: `karat.pl` or `www.karat.pl`.
+- **Multi-location**: `<location>.<brand>.mysite.social` — e.g. `santafe.doublz.mysite.social`. Custom domain: `santafe.doublz.mysite.co` (or any brand-owned subdomain).
+- **Brand root without a location** (`doublz.mysite.social`) → **404**. Every valid URL must resolve to a specific location. Documented as a deliberate rule in `docs/02-adding-a-client.md`.
 
 Vercel domain configuration:
 
-- Two wildcard entries: `*.mysite.so` (covers single-location) and `*.*.mysite.so` (covers multi-location — subject to the wildcard-of-wildcard TLS verification in the prerequisites above; fall back to flat `<location>-<brand>.mysite.so` if unsupported).
+- Two wildcard entries: `*.mysite.social` (covers single-location) and `*.*.mysite.social` (covers multi-location — subject to the wildcard-of-wildcard TLS verification in the prerequisites above; fall back to flat `<location>-<brand>.mysite.social` if unsupported).
 - Each custom domain per client is added individually in Vercel dashboard (a `docs/02-adding-a-client.md` runbook step).
 
-`template_domains` is authoritative — the middleware does not parse the host structurally. Instead every hostname (`karat.mysite.so`, `santafe.doublz.mysite.so`, `karat.pl`, `santafe.doublz.mysite.co`, `www.karat.pl`) is a **row** pointing at a single `location_id`. This means:
+`template_domains` is authoritative — the middleware does not parse the host structurally. Instead every hostname (`karat.mysite.social`, `santafe.doublz.mysite.social`, `karat.pl`, `santafe.doublz.mysite.co`, `www.karat.pl`) is a **row** pointing at a single `location_id`. This means:
 
 - Both wildcard forms and custom domains use identical code paths.
 - Adding an alias domain (e.g. attaching `www.karat.pl` alongside `karat.pl`) = one row insert.
@@ -88,7 +88,7 @@ Vercel domain configuration:
 
 **Migration hygiene note.** Unlike `attribution-autopilot` — whose base tables (`organizations`, `locations`, `users`, `promotions`, `loyalty_campaigns`) were created in Supabase Studio and whose `001_enable_rls.sql` only enables RLS on `ALTER TABLE IF EXISTS` — every `template_*` table in this project is created **via SQL migrations checked into git**. This is a deliberate improvement: reproducible schema, reviewable diffs, no drift between Studio and the repo.
 
-**Modeling note on `template_brands`.** `attribution-autopilot` has no `brands` table — its hierarchy is `organizations → locations` directly. `template_brands` is therefore a **new modeling decision** specific to this template, introduced to solve two problems that don't exist on the attribution side: (a) URL shape for multi-location brands (`<location>.<brand>.mysite.so`), and (b) shared design tokens + copy across locations under one brand. It should not be described in docs as "mirroring the attribution schema" — it isn't.
+**Modeling note on `template_brands`.** `attribution-autopilot` has no `brands` table — its hierarchy is `organizations → locations` directly. `template_brands` is therefore a **new modeling decision** specific to this template, introduced to solve two problems that don't exist on the attribution side: (a) URL shape for multi-location brands (`<location>.<brand>.mysite.social`), and (b) shared design tokens + copy across locations under one brand. It should not be described in docs as "mirroring the attribution schema" — it isn't.
 
 Three-tier hierarchy that maps naturally to both single- and multi-location clients:
 
@@ -109,10 +109,10 @@ New tables (in the brand-new `website-template` Supabase project, migrations in 
 - `template_brands` — one row per brand. Design tokens + logo + copy tone live here. Fields: `id`, `org_id`, `slug`, `name`, `logo_url`, `theme` (JSONB — narrow override: `{ primary?: oklch, primary_foreground?: oklch }`; defaults to MySite grayscale — `radius` is intentionally NOT overridable, see Design System), `tagline`, `about_md`.
 - `template_locations` — Fields: `id`, `brand_id`, `slug`, `name`, `address_line`, `city`, `region`, `postal_code`, `country`, `latitude`, `longitude`, `phone`, `email`, `weekday_hours`, `weekend_hours`, `maps_embed_url`, `maps_search_query`, `instagram_url`, `facebook_url`, `delivery` (JSONB `{name,url}[]`), `attribution_promotion_id`, `attribution_campaign_id`, `attribution_org_id`, `attribution_location_id` (the last four are the FKs into the `attribution-autopilot` Supabase project — `attribution_location_id` is the value operators use when inserting into `attribution-autopilot.location_origins`), `umami_website_id`, `meta_pixel_ids` (text[]), `gallery` (JSONB — `{ src: string; alt: string }[]`), `menu` (JSONB — see Menu JSON Shape below).
 - `template_domains` — Fields: `hostname` (unique, lowercased, stored exactly as sent; `www.karat.pl` and `karat.pl` are separate rows), `location_id`, `is_primary` (only one primary per location — enforced by a partial unique index: `CREATE UNIQUE INDEX ON template_domains(location_id) WHERE is_primary; used for canonical URLs + JSON-LD `url`), `kind` (`mysite_single` | `mysite_multi` | `custom` — metadata only, not used for resolution). Additional CHECK constraint: `hostname` must not match `^[a-z0-9-]+\.mysite\.so$` — this enforces the "bare brand root → 404" rule at the DB level, not just by absence-of-row. This is the resolution index. Examples of rows for one brand:
-  - `karat.mysite.so` → `location_id=<karat>`, `is_primary=true`, `kind=mysite_single`
+  - `karat.mysite.social` → `location_id=<karat>`, `is_primary=true`, `kind=mysite_single`
   - `karat.pl` → same `location_id`, `is_primary=false`, `kind=custom`
   - `www.karat.pl` → same `location_id`, `is_primary=false`, `kind=custom` (separate row — hostnames are stored exact-match, no `www.` stripping)
-  - `santafe.doublz.mysite.so` → `location_id=<santafe>`, `is_primary=true`, `kind=mysite_multi`
+  - `santafe.doublz.mysite.social` → `location_id=<santafe>`, `is_primary=true`, `kind=mysite_multi`
   - `santafe.doublz.mysite.co` → same `location_id`, `is_primary=false`, `kind=custom`
 
 ### Menu JSON Shape
@@ -161,19 +161,19 @@ Any future client-side Supabase feature must justify opening a specific column-l
 
 ```mermaid
 flowchart TD
-  Req["Incoming request<br/>Host: karat.mysite.so<br/>or santafe.doublz.mysite.so<br/>or custom domain"] --> MW["src/middleware.ts"]
+  Req["Incoming request<br/>Host: karat.mysite.social<br/>or santafe.doublz.mysite.social<br/>or custom domain"] --> MW["src/middleware.ts"]
   MW --> Norm["normalize host<br/>(lowercase, strip port ONLY)"]
   Norm --> Look["SELECT * FROM template_domains<br/>WHERE hostname = $1"]
   Look -->|hit| Ctx["build TenantContext<br/>{ org, brand, location, isPrimaryDomain }"]
   Look -->|miss + preview cookie| Query["fallback: ?tenant=slug query<br/>(only if x-preview=1 cookie set)"]
-  Look -->|miss| NF["render 404<br/>(includes: bare brand root like doublz.mysite.so)"]
+  Look -->|miss| NF["render 404<br/>(includes: bare brand root like doublz.mysite.social)"]
   Ctx --> Astro["Astro.locals.tenant"]
   Astro --> Page["pages/*.astro read from locals"]
 ```
 
 - **`src/middleware.ts`** — reads `Astro.request.headers.get('host')`, normalizes (**lowercase + strip port only** — `www.` is NOT stripped, `www.karat.pl` and `karat.pl` are separate rows in `template_domains`), calls `resolveTenant(host)` from `src/lib/tenant/resolve.ts`, attaches `Astro.locals.tenant`. In-memory LRU cache with 60s TTL keyed by hostname (natural TTL only — no Supabase realtime invalidation in v1; a redeploy or the 60s TTL is how operators pick up domain changes).
-- **The middleware treats every URL shape identically** — `karat.mysite.so`, `santafe.doublz.mysite.so`, `karat.pl`, `www.karat.pl`, `santafe.doublz.mysite.co` are all just hostnames looked up in `template_domains`. There is **no structural parsing** of the host (no "if 2 dots then it's multi-location" logic, no `www.` alias-collapse). This is a deliberate simplification: URL patterns are documentation, the DB is the source of truth.
-- **Bare brand root `doublz.mysite.so` → 404** at two levels: (a) no such row exists in `template_domains`, and (b) the CHECK constraint on `template_domains.hostname` would reject the row anyway if an operator tried to insert it. Defense in depth.
+- **The middleware treats every URL shape identically** — `karat.mysite.social`, `santafe.doublz.mysite.social`, `karat.pl`, `www.karat.pl`, `santafe.doublz.mysite.co` are all just hostnames looked up in `template_domains`. There is **no structural parsing** of the host (no "if 2 dots then it's multi-location" logic, no `www.` alias-collapse). This is a deliberate simplification: URL patterns are documentation, the DB is the source of truth.
+- **Bare brand root `doublz.mysite.social` → 404** at two levels: (a) no such row exists in `template_domains`, and (b) the CHECK constraint on `template_domains.hostname` would reject the row anyway if an operator tried to insert it. Defense in depth.
 - **Canonical URL / redirect (optional, v1.1)**: if `hostname` matches a non-primary alias, middleware can 301 to the primary. Off by default in v1 to avoid surprises; toggle in `docs/`.
 - **Preview override** via `?tenant=slug` query — gated by an `x-preview=1` cookie set by a lightweight basic-auth-protected `/preview/enable` endpoint (implementation in `docs/06-developer-guide.md`). The DEV clause is removed because `import.meta.env.DEV` is inlined as `false` at Vercel build time and would be dead code in production.
 - Every `.astro` page reads `Astro.locals.tenant` — no per-page fetching, no prop drilling.
@@ -214,7 +214,7 @@ export type CreateUserResult =
   | { status: 'exists'; requires_recovery: true; message: string };
 ```
 
-The `PromotionsService.findOne(dto.promotion_id)` call already runs inside `create()` (line 138 of `users.service.ts`) and the first reward is already fetched to compute `first_reward_code`. **Extend the response to include the display strings** — zero new endpoints, zero CORS/origin changes (`GET /api/promotions/*` is admin-origin-gated and cannot be called from a `karat.mysite.so` origin):
+The `PromotionsService.findOne(dto.promotion_id)` call already runs inside `create()` (line 138 of `users.service.ts`) and the first reward is already fetched to compute `first_reward_code`. **Extend the response to include the display strings** — zero new endpoints, zero CORS/origin changes (`GET /api/promotions/*` is admin-origin-gated and cannot be called from a `karat.mysite.social` origin):
 
 ```ts
 // Proposed shape (backend PR tracked as prereq in docs/04-attribution-integration.md)
@@ -372,10 +372,10 @@ Only 3 env vars. All others live in Supabase.
 
 Three steps, no code:
 
-1. **`website-template` Supabase**: insert one row each into `template_organizations`, `template_brands` (brand.slug = location.slug, e.g. `karat`), `template_locations` (including `attribution_promotion_id`, `attribution_campaign_id`, `attribution_org_id`, `attribution_location_id` referencing existing rows in the attribution-autopilot Supabase project). Insert one row into `template_domains`: `hostname='karat.mysite.so', is_primary=true, kind='mysite_single'`. If the client brings a custom domain, insert additional `template_domains` rows: `hostname='karat.pl', is_primary=false, kind='custom'` and, if applicable, a **separate** row for `hostname='www.karat.pl'` (hostnames are stored exact-match — no `www.` stripping).
+1. **`website-template` Supabase**: insert one row each into `template_organizations`, `template_brands` (brand.slug = location.slug, e.g. `karat`), `template_locations` (including `attribution_promotion_id`, `attribution_campaign_id`, `attribution_org_id`, `attribution_location_id` referencing existing rows in the attribution-autopilot Supabase project). Insert one row into `template_domains`: `hostname='karat.mysite.social', is_primary=true, kind='mysite_single'`. If the client brings a custom domain, insert additional `template_domains` rows: `hostname='karat.pl', is_primary=false, kind='custom'` and, if applicable, a **separate** row for `hostname='www.karat.pl'` (hostnames are stored exact-match — no `www.` stripping).
 2. **`attribution-autopilot` Supabase**: for each hostname in step 1, insert a row into `location_origins` with `location_id = <template_locations.attribution_location_id>` and `origin = 'https://<hostname>'`. **This is the only supported path** — do not add regex patterns to `DEFAULT_ALLOWED_ORIGIN_PATTERNS` (that requires a code change + backend redeploy, not zero-code onboarding). ⚠️ There is a **60-second cache lag** on the origins list — wait ~60s after the INSERT before smoke-testing `/promocja` or CORS will fail with a confusing error.
 3. **DNS + Vercel**:
-   - `karat.mysite.so` → already covered by the wildcard `*.mysite.so` — nothing to do.
+   - `karat.mysite.social` → already covered by the wildcard `*.mysite.social` — nothing to do.
    - `karat.pl` → in Vercel dashboard, add the domain to the template project; ask the client to CNAME to `cname.vercel-dns.com` (or A-record to Vercel's IP for apex domains).
 
 ### Pattern B — multi-location (e.g. Doublz brand with Santa Fe location)
@@ -383,13 +383,13 @@ Three steps, no code:
 Three steps, no code:
 
 1. **`website-template` Supabase**: insert `template_organizations` (once per client), `template_brands` (once per brand, e.g. `doublz`), and one `template_locations` per location (e.g. `santafe`). Insert `template_domains` rows:
-   - `hostname='santafe.doublz.mysite.so', is_primary=true, kind='mysite_multi'`
+   - `hostname='santafe.doublz.mysite.social', is_primary=true, kind='mysite_multi'`
    - `hostname='santafe.doublz.mysite.co', is_primary=false, kind='custom'` (if the client owns their own brand domain)
    - Repeat for every other location under the brand.
-   - **Do not insert** a row for `doublz.mysite.so` (bare brand root) — the CHECK constraint on `template_domains.hostname` rejects any exact `<slug>.mysite.so` shape anyway, per the "brand root → 404" rule.
+   - **Do not insert** a row for `doublz.mysite.social` (bare brand root) — the CHECK constraint on `template_domains.hostname` rejects any exact `<slug>.mysite.social` shape anyway, per the "brand root → 404" rule.
 2. **`attribution-autopilot` Supabase**: insert one `location_origins` row per hostname from step 1 (same 60s cache-lag warning applies).
 3. **DNS + Vercel**:
-   - `santafe.doublz.mysite.so` → covered by the nested wildcard `*.*.mysite.so` **only if Vercel-issued TLS supports it** (see the prerequisites at the top of Hosting / Domain Model). If not, restructure to flat `santafe-doublz.mysite.so`.
+   - `santafe.doublz.mysite.social` → covered by the nested wildcard `*.*.mysite.social` **only if Vercel-issued TLS supports it** (see the prerequisites at the top of Hosting / Domain Model). If not, restructure to flat `santafe-doublz.mysite.social`.
    - `santafe.doublz.mysite.co` → add the domain to the Vercel project; client CNAMEs it.
 
 Site is live in <5 minutes (plus the 60s CORS cache wait before end-to-end smoke test).
