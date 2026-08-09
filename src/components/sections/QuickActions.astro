@@ -1,4 +1,5 @@
 ---
+import { Card, CardContent } from "@/components/ui/card";
 import type { TenantContext } from "@/lib/tenant/types";
 import { formatPhone } from "@/lib/utils";
 import { Phone, Navigation, UtensilsCrossed, ShoppingBag } from "lucide-react";
@@ -25,37 +26,41 @@ interface Tile {
 }
 
 const tiles: Tile[] = [
-  { icon: Phone,            label: "Call",       href: phoneHref,      ariaLabel: `Call: ${formatPhone(location.phone)}`, umamiEvent: "click-call" },
-  { icon: Navigation,       label: "Directions", href: directionsHref, ariaLabel: "Directions",  umamiEvent: "click-directions" },
-  { icon: UtensilsCrossed,  label: "Menu",       href: "/menu",        ariaLabel: "Menu",        umamiEvent: "click-menu" },
-  { icon: ShoppingBag,      label: "Order",      href: deliveryHref,   ariaLabel: "Order online",umamiEvent: "click-delivery" },
+  { icon: Phone,           label: "Call",       href: phoneHref,      ariaLabel: `Call: ${formatPhone(location.phone)}`, umamiEvent: "click-call" },
+  { icon: Navigation,      label: "Directions", href: directionsHref, ariaLabel: "Directions",  umamiEvent: "click-directions" },
+  { icon: UtensilsCrossed, label: "Menu",       href: "/menu",        ariaLabel: "Menu",        umamiEvent: "click-menu" },
+  { icon: ShoppingBag,     label: "Order",      href: deliveryHref,   ariaLabel: "Order online",umamiEvent: "click-delivery" },
 ];
 ---
 
 <section class="section-well mt-6">
-  <div class="grid grid-cols-4 gap-2.5">
+  <div class="grid grid-cols-4 gap-2">
     {tiles.map((tile) => {
       const Icon = tile.icon;
+      const inner = (
+        <CardContent className="flex flex-col items-center justify-center gap-2 py-3">
+          <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
+          <span class="text-[12px] font-medium leading-none">{tile.label}</span>
+        </CardContent>
+      );
       if (!tile.href) {
         return (
-          <div class="action-tile" aria-disabled="true">
-            <Icon size={22} strokeWidth={1.75} aria-hidden="true" />
-            <span>{tile.label}</span>
-          </div>
+          <Card size="sm" className="opacity-40" aria-disabled="true">
+            {inner}
+          </Card>
         );
       }
       const external = tile.href.startsWith("http");
       return (
         <a
           href={tile.href}
-          class="action-tile"
           aria-label={tile.ariaLabel}
           data-umami-event={tile.umamiEvent}
           data-umami-event-target="quick-actions"
+          class="block transition-colors hover:[&_[data-slot=card]]:bg-muted/60 active:scale-[0.98]"
           {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
         >
-          <Icon size={22} strokeWidth={1.75} aria-hidden="true" />
-          <span>{tile.label}</span>
+          <Card size="sm">{inner}</Card>
         </a>
       );
     })}

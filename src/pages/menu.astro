@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import MenuBrowser from "@/components/menu/MenuBrowser.tsx";
+import { Card, CardContent } from "@/components/ui/card";
 import { buildLocationSeo } from "@/lib/seo/schema";
 
 const tenant = Astro.locals.tenant;
@@ -18,20 +19,22 @@ Astro.response.headers.set(
 ---
 
 <BaseLayout tenant={tenant} seo={seo} currentPath="/menu">
-  <section class="section-well pt-8 pb-4">
+  <section class="section-well pt-8 pb-2">
     <p class="section-label">{tenant.brand.name}</p>
     <h1 class="mt-1.5 text-[28px] font-semibold tracking-tight leading-tight">Menu</h1>
   </section>
 
   {menu && menu.categories.length > 0 ? (
-    <section class="section-well mt-2 pb-16">
+    <section class="section-well mt-6 pb-16">
       <MenuBrowser client:visible menu={menu} />
     </section>
   ) : (
-    <section class="section-well mt-4 pb-16">
-      <div class="card p-8 text-center">
-        <p class="text-sm text-muted-foreground">Menu coming soon — check back later.</p>
-      </div>
+    <section class="section-well mt-6 pb-16">
+      <Card>
+        <CardContent className="py-8 text-center">
+          <p class="text-sm text-muted-foreground">Menu coming soon — check back later.</p>
+        </CardContent>
+      </Card>
     </section>
   )}
 </BaseLayout>

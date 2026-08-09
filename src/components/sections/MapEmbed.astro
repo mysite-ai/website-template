@@ -1,4 +1,5 @@
 ---
+import { Card, CardContent } from "@/components/ui/card";
 import type { TenantContext } from "@/lib/tenant/types";
 import { formatPhone } from "@/lib/utils";
 import { Navigation, Phone } from "lucide-react";
@@ -20,9 +21,9 @@ const shouldRender = addressLine1 || location.maps_embed_url;
 ---
 
 {shouldRender && (
-  <section id="location" class="section-well mt-10 scroll-mt-16">
+  <section id="location" class="section-well mt-6 scroll-mt-16">
     <p class="section-label mb-3 px-1">Location</p>
-    <div class="card overflow-hidden">
+    <Card className="p-0 gap-0">
       {location.maps_embed_url && (
         <iframe
           src={location.maps_embed_url}
@@ -34,7 +35,7 @@ const shouldRender = addressLine1 || location.maps_embed_url;
         />
       )}
 
-      <div class="p-5 sm:p-6">
+      <div class="p-4">
         <p class="text-[15px] font-semibold tracking-tight">{location.name}</p>
         {addressLine1 && (
           <p class="mt-0.5 text-[13px] text-muted-foreground">{addressLine1}</p>
@@ -49,27 +50,27 @@ const shouldRender = addressLine1 || location.maps_embed_url;
               href={directionsHref}
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground text-[14px] font-semibold py-2.5 hover:opacity-90 transition-opacity"
+              class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium py-2.5 hover:opacity-90 transition-opacity"
               data-umami-event="click-directions"
               data-umami-event-target="section-location"
             >
-              <Navigation size={16} strokeWidth={2} aria-hidden="true" />
+              <Navigation size={16} strokeWidth={1.75} aria-hidden="true" />
               Directions
             </a>
           )}
           {phoneHref && location.phone && (
             <a
               href={phoneHref}
-              class="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card text-foreground text-[14px] font-semibold py-2.5 hover:bg-muted transition-colors tabular-nums"
+              class="inline-flex items-center justify-center gap-2 rounded-lg bg-card text-foreground text-[13px] font-medium py-2.5 ring-1 ring-foreground/10 hover:bg-muted transition-colors tabular-nums"
               data-umami-event="click-call"
               data-umami-event-target="section-location"
             >
-              <Phone size={16} strokeWidth={2} aria-hidden="true" />
+              <Phone size={16} strokeWidth={1.75} aria-hidden="true" />
               {formatPhone(location.phone)}
             </a>
           )}
         </div>
       </div>
-    </div>
+    </Card>
   </section>
 )}

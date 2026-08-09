@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Menu, MenuCategory, MenuItem } from "@/lib/menu/types";
 import { formatMoney } from "@/lib/menu/parse";
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
 
 interface Props {
   menu: Menu;
@@ -62,7 +63,7 @@ export default function MenuBrowser({ menu }: Props) {
         </div>
       </div>
 
-      <div className="mt-6 space-y-10">
+      <div className="mt-6 space-y-6">
         {categories.map((cat) => (
           <CategorySection
             key={cat.id}
@@ -102,11 +103,13 @@ function CategorySection({ category, registerRef }: CategorySectionProps) {
         )}
       </div>
 
-      <ul className="card overflow-hidden divide-y divide-border/40">
-        {category.items.map((item) => (
-          <Item key={item.id} item={item} />
-        ))}
-      </ul>
+      <Card className="p-0 gap-0">
+        <ul className="divide-y divide-foreground/10">
+          {category.items.map((item) => (
+            <Item key={item.id} item={item} />
+          ))}
+        </ul>
+      </Card>
     </section>
   );
 }
@@ -122,7 +125,7 @@ function Item({ item }: ItemProps) {
   }, [item.price]);
 
   return (
-    <li className="flex items-start gap-3.5 px-5 py-3.5 sm:px-6">
+    <li className="flex items-start gap-3 px-4 py-3.5">
       {item.image_url && (
         <img
           src={item.image_url}

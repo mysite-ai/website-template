@@ -19,7 +19,7 @@ const promoConfigured =
 
 {brand.logo_url && <link rel="preload" as="image" href={brand.logo_url} />}
 
-<section class="section-well pt-10 pb-6 sm:pt-12">
+<section class="section-well pt-12 pb-2">
   <div class="text-center">
     {brand.logo_url ? (
       <img
@@ -53,7 +53,7 @@ const promoConfigured =
   </div>
 
   {promoConfigured && (
-    <div class="mt-7">
+    <div class="mt-6">
       <PromoBanner
         client:load
         href="/promocja"
