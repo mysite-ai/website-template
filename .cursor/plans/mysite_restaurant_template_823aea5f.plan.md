@@ -68,7 +68,7 @@ isProject: false
 The template supports two host patterns simultaneously, both resolved by the same middleware from the `template_domains` table:
 
 - **Single-location**: `<location>.mysite.social` — e.g. `karat.mysite.social`. For single-location clients, `brand.slug === location.slug` (they collapse). Custom domain: `karat.pl` or `www.karat.pl`.
-- **Multi-location**: `<location>.<brand>.mysite.social` — e.g. `santafe.doublz.mysite.social`. Custom domain: `santafe.doublz.mysite.co` (or any brand-owned subdomain).
+- **Multi-location**: `<location>.<brand>.mysite.social` — e.g. `santafe.doublz.mysite.social`. Custom domain: `santafe.doublz.doublz.com` (or any brand-owned subdomain).
 - **Brand root without a location** (`doublz.mysite.social`) → **404**. Every valid URL must resolve to a specific location. Documented as a deliberate rule in `docs/02-adding-a-client.md`.
 
 Vercel domain configuration:
@@ -76,7 +76,7 @@ Vercel domain configuration:
 - Two wildcard entries: `*.mysite.social` (covers single-location) and `*.*.mysite.social` (covers multi-location — subject to the wildcard-of-wildcard TLS verification in the prerequisites above; fall back to flat `<location>-<brand>.mysite.social` if unsupported).
 - Each custom domain per client is added individually in Vercel dashboard (a `docs/02-adding-a-client.md` runbook step).
 
-`template_domains` is authoritative — the middleware does not parse the host structurally. Instead every hostname (`karat.mysite.social`, `santafe.doublz.mysite.social`, `karat.pl`, `santafe.doublz.mysite.co`, `www.karat.pl`) is a **row** pointing at a single `location_id`. This means:
+`template_domains` is authoritative — the middleware does not parse the host structurally. Instead every hostname (`karat.mysite.social`, `santafe.doublz.mysite.social`, `karat.pl`, `santafe.doublz.doublz.com`, `www.karat.pl`) is a **row** pointing at a single `location_id`. This means:
 
 - Both wildcard forms and custom domains use identical code paths.
 - Adding an alias domain (e.g. attaching `www.karat.pl` alongside `karat.pl`) = one row insert.
@@ -113,7 +113,7 @@ New tables (in the brand-new `website-template` Supabase project, migrations in 
   - `karat.pl` → same `location_id`, `is_primary=false`, `kind=custom`
   - `www.karat.pl` → same `location_id`, `is_primary=false`, `kind=custom` (separate row — hostnames are stored exact-match, no `www.` stripping)
   - `santafe.doublz.mysite.social` → `location_id=<santafe>`, `is_primary=true`, `kind=mysite_multi`
-  - `santafe.doublz.mysite.co` → same `location_id`, `is_primary=false`, `kind=custom`
+  - `santafe.doublz.doublz.com` → same `location_id`, `is_primary=false`, `kind=custom`
 
 ### Menu JSON Shape
 
@@ -172,7 +172,7 @@ flowchart TD
 ```
 
 - **`src/middleware.ts`** — reads `Astro.request.headers.get('host')`, normalizes (**lowercase + strip port only** — `www.` is NOT stripped, `www.karat.pl` and `karat.pl` are separate rows in `template_domains`), calls `resolveTenant(host)` from `src/lib/tenant/resolve.ts`, attaches `Astro.locals.tenant`. In-memory LRU cache with 60s TTL keyed by hostname (natural TTL only — no Supabase realtime invalidation in v1; a redeploy or the 60s TTL is how operators pick up domain changes).
-- **The middleware treats every URL shape identically** — `karat.mysite.social`, `santafe.doublz.mysite.social`, `karat.pl`, `www.karat.pl`, `santafe.doublz.mysite.co` are all just hostnames looked up in `template_domains`. There is **no structural parsing** of the host (no "if 2 dots then it's multi-location" logic, no `www.` alias-collapse). This is a deliberate simplification: URL patterns are documentation, the DB is the source of truth.
+- **The middleware treats every URL shape identically** — `karat.mysite.social`, `santafe.doublz.mysite.social`, `karat.pl`, `www.karat.pl`, `santafe.doublz.doublz.com` are all just hostnames looked up in `template_domains`. There is **no structural parsing** of the host (no "if 2 dots then it's multi-location" logic, no `www.` alias-collapse). This is a deliberate simplification: URL patterns are documentation, the DB is the source of truth.
 - **Bare brand root `doublz.mysite.social` → 404** at two levels: (a) no such row exists in `template_domains`, and (b) the CHECK constraint on `template_domains.hostname` would reject the row anyway if an operator tried to insert it. Defense in depth.
 - **Canonical URL / redirect (optional, v1.1)**: if `hostname` matches a non-primary alias, middleware can 301 to the primary. Off by default in v1 to avoid surprises; toggle in `docs/`.
 - **Preview override** via `?tenant=slug` query — gated by an `x-preview=1` cookie set by a lightweight basic-auth-protected `/preview/enable` endpoint (implementation in `docs/06-developer-guide.md`). The DEV clause is removed because `import.meta.env.DEV` is inlined as `false` at Vercel build time and would be dead code in production.
@@ -384,13 +384,13 @@ Three steps, no code:
 
 1. **`website-template` Supabase**: insert `template_organizations` (once per client), `template_brands` (once per brand, e.g. `doublz`), and one `template_locations` per location (e.g. `santafe`). Insert `template_domains` rows:
    - `hostname='santafe.doublz.mysite.social', is_primary=true, kind='mysite_multi'`
-   - `hostname='santafe.doublz.mysite.co', is_primary=false, kind='custom'` (if the client owns their own brand domain)
+   - `hostname='santafe.doublz.doublz.com', is_primary=false, kind='custom'` (if the client owns their own brand domain)
    - Repeat for every other location under the brand.
    - **Do not insert** a row for `doublz.mysite.social` (bare brand root) — the CHECK constraint on `template_domains.hostname` rejects any exact `<slug>.mysite.social` shape anyway, per the "brand root → 404" rule.
 2. **`attribution-autopilot` Supabase**: insert one `location_origins` row per hostname from step 1 (same 60s cache-lag warning applies).
 3. **DNS + Vercel**:
    - `santafe.doublz.mysite.social` → covered by the nested wildcard `*.*.mysite.social` **only if Vercel-issued TLS supports it** (see the prerequisites at the top of Hosting / Domain Model). If not, restructure to flat `santafe-doublz.mysite.social`.
-   - `santafe.doublz.mysite.co` → add the domain to the Vercel project; client CNAMEs it.
+   - `santafe.doublz.doublz.com` → add the domain to the Vercel project; client CNAMEs it.
 
 Site is live in <5 minutes (plus the 60s CORS cache wait before end-to-end smoke test).
 
