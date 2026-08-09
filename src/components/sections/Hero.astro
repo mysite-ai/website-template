@@ -57,11 +57,8 @@ const promoConfigured =
       <PromoBanner
         client:load
         href="/promocja"
-        headline={location.promotion_name_cached ?? "Loyalty rewards"}
-        subline={location.reward_description_cached ?? "Tap to reveal your personal QR code"}
-        validUntilLabel="Ends {date}"
-        expiredLabel="This promotion has ended"
-        locale={org.default_locale ?? "en"}
+        headline={location.reward_description_cached ?? location.promotion_name_cached ?? "Get your reward"}
+        subline="Tap to get your QR code 🎉"
       />
     </div>
   )}
