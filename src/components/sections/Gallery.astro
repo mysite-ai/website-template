@@ -1,58 +1,18 @@
 ---
 import type { TenantContext } from "@/lib/tenant/types";
+import GalleryBrowser from "./GalleryBrowser.tsx";
 
 interface Props {
   tenant: TenantContext;
 }
 
 const { tenant } = Astro.props;
-// Skip the very first image (used as the logo/hero fallback slot in
-// wbc-v2's pattern); take up to 6 for the mosaic.
 const gallery = tenant.location.gallery.slice(0, 6);
 ---
 
 {gallery.length > 0 && (
   <section class="section-well mt-6">
     <p class="section-label mb-3 px-1">Gallery</p>
-
-    {/* Mosaic: featured tile on top full-width, then a 3-up strip.
-       Falls back gracefully when only 1–3 images are available. */}
-    <div class="grid gap-2 sm:gap-2.5">
-      {gallery[0] && (
-        <img
-          src={gallery[0].src}
-          alt={gallery[0].alt}
-          class="w-full aspect-[16/9] object-cover rounded-2xl"
-          loading="lazy"
-          decoding="async"
-        />
-      )}
-      {gallery.length > 1 && (
-        <div class="grid grid-cols-3 gap-2 sm:gap-2.5">
-          {gallery.slice(1, 4).map((image) => (
-            <img
-              src={image.src}
-              alt={image.alt}
-              class="w-full aspect-square object-cover rounded-xl"
-              loading="lazy"
-              decoding="async"
-            />
-          ))}
-        </div>
-      )}
-      {gallery.length > 4 && (
-        <div class:list={["grid gap-2 sm:gap-2.5", gallery.length === 5 ? "grid-cols-1" : "grid-cols-2"]}>
-          {gallery.slice(4, 6).map((image) => (
-            <img
-              src={image.src}
-              alt={image.alt}
-              class="w-full aspect-[4/3] object-cover rounded-xl"
-              loading="lazy"
-              decoding="async"
-            />
-          ))}
-        </div>
-      )}
-    </div>
+    <GalleryBrowser client:visible images={gallery} />
   </section>
 )}
