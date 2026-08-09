@@ -23,7 +23,7 @@ const links: Array<{ href: string; label: string }> = [
       {brand.logo_url ? (
         <img src={brand.logo_url} alt="" class="h-7 w-7 object-contain" loading="eager" />
       ) : (
-        <div class="h-7 w-7 rounded-lg bg-foreground text-background grid place-items-center text-[11px] font-semibold">
+        <div class="h-7 w-7 rounded-lg bg-primary text-primary-foreground grid place-items-center text-[11px] font-semibold">
           {displayName.charAt(0)}
         </div>
       )}
@@ -39,7 +39,7 @@ const links: Array<{ href: string; label: string }> = [
               class:list={[
                 "px-3 py-1.5 text-[12px] font-medium rounded-full transition-colors",
                 currentPath === link.href
-                  ? "bg-foreground text-background"
+                  ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted",
               ]}
               aria-current={currentPath === link.href ? "page" : undefined}

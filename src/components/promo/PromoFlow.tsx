@@ -135,7 +135,7 @@ export default function PromoFlow(props: PromoFlowProps) {
               className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 object-contain"
             />
           ) : (
-            <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-muted text-foreground grid place-items-center text-2xl font-semibold">
+            <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-primary text-primary-foreground grid place-items-center text-2xl font-semibold">
               {brandName.charAt(0)}
             </div>
           )}
