@@ -12,6 +12,11 @@ const { brand } = Astro.props;
  * --primary and --primary-foreground can be overridden. See the plan's
  * Design System section for why --radius cannot be tenant-overridden
  * without breaking the @theme inline scale.
+ *
+ * Selector: we use `html:root` (specificity 0,1,1) instead of plain
+ * `:root` (0,1,0) so this rule wins against globals.css even when
+ * Astro hoists the stylesheet <link> after this inline <style>. Same
+ * technique that shadcn's ThemeProvider uses when injecting themes.
  */
 
 const primary = typeof brand.theme.primary === "string" ? brand.theme.primary : null;
@@ -26,4 +31,4 @@ const declarations = [
   .join(" ");
 ---
 
-{declarations && <style set:html={`:root { ${declarations} }`} />}
+{declarations && <style set:html={`html:root { ${declarations} }`} />}
