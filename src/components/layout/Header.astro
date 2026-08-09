@@ -1,0 +1,55 @@
+---
+import type { TenantContext } from "@/lib/tenant/types";
+
+interface Props {
+  tenant: TenantContext;
+  currentPath: string;
+}
+
+const { tenant, currentPath } = Astro.props;
+const { brand, location } = tenant;
+
+const displayName = brand.slug === location.slug ? brand.name : `${brand.name} · ${location.name}`;
+
+const links: Array<{ href: string; label: string }> = [
+  { href: "/", label: "Start" },
+  { href: "/menu", label: "Menu" },
+  { href: "/promocja", label: "Promocja" },
+];
+---
+
+<header class="section-well pt-6 pb-2">
+  <div class="flex items-center justify-between">
+    <a href="/" class="flex items-center gap-3" aria-label={displayName}>
+      {brand.logo_url ? (
+        <img src={brand.logo_url} alt={displayName} class="h-9 w-9 rounded-lg object-cover" loading="eager" />
+      ) : (
+        <div class="h-9 w-9 rounded-lg bg-primary text-primary-foreground grid place-items-center text-sm font-semibold">
+          {displayName.charAt(0)}
+        </div>
+      )}
+      <span class="text-sm font-semibold tracking-tight">{displayName}</span>
+    </a>
+
+    <nav aria-label="Główna nawigacja">
+      <ul class="flex items-center gap-1">
+        {links.map((link) => (
+          <li>
+            <a
+              href={link.href}
+              class:list={[
+                "px-3 py-1.5 text-sm rounded-full transition-colors",
+                currentPath === link.href
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted",
+              ]}
+              aria-current={currentPath === link.href ? "page" : undefined}
+            >
+              {link.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  </div>
+</header>

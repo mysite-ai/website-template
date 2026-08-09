@@ -1,0 +1,32 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import MenuBrowser from "@/components/menu/MenuBrowser.tsx";
+import { buildLocationSeo } from "@/lib/seo/schema";
+
+const tenant = Astro.locals.tenant;
+const seo = buildLocationSeo({
+  tenant,
+  path: "/menu",
+  title: `Menu — ${tenant.brand.name}`,
+});
+const menu = tenant.location.menu;
+
+Astro.response.headers.set(
+  "cache-control",
+  "public, s-maxage=60, stale-while-revalidate=300",
+);
+---
+
+<BaseLayout tenant={tenant} seo={seo} currentPath="/menu">
+  <section class="section-well mt-6">
+    <h1 class="text-2xl font-semibold tracking-tight mb-4">Menu</h1>
+
+    {menu && menu.categories.length > 0 ? (
+      <MenuBrowser client:visible menu={menu} />
+    ) : (
+      <div class="map-card p-6 text-center">
+        <p class="text-sm text-muted-foreground">Menu wkrótce — zapraszamy niedługo!</p>
+      </div>
+    )}
+  </section>
+</BaseLayout>

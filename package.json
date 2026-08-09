@@ -1,0 +1,41 @@
+{
+  "name": "website-template",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Astro-based multi-tenant restaurant site template powering hundreds of single- and multi-location clients from one codebase.",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "typecheck": "astro check",
+    "supabase:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > src/lib/supabase/types.ts"
+  },
+  "dependencies": {
+    "@astrojs/react": "^4.2.0",
+    "@astrojs/vercel": "^8.1.0",
+    "@fontsource-variable/geist": "^5.1.1",
+    "@radix-ui/react-slot": "^1.1.2",
+    "@supabase/supabase-js": "^2.47.10",
+    "@tailwindcss/vite": "^4.0.0",
+    "astro": "^5.1.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.469.0",
+    "qrcode.react": "^4.2.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss": "^4.0.0",
+    "tw-animate-css": "^1.2.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/node": "^22.10.5",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
+    "typescript": "^5.7.3"
+  }
+}

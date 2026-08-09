@@ -1,0 +1,29 @@
+---
+import type { TenantBrand } from "@/lib/tenant/types";
+
+interface Props {
+  brand: TenantBrand;
+}
+
+const { brand } = Astro.props;
+
+/*
+ * Injects per-brand CSS variable overrides. Deliberately narrow: only
+ * --primary and --primary-foreground can be overridden. See the plan's
+ * Design System section for why --radius cannot be tenant-overridden
+ * without breaking the @theme inline scale.
+ */
+
+const primary = typeof brand.theme.primary === "string" ? brand.theme.primary : null;
+const primaryForeground =
+  typeof brand.theme.primary_foreground === "string" ? brand.theme.primary_foreground : null;
+
+const declarations = [
+  primary ? `--primary: ${primary};` : null,
+  primaryForeground ? `--primary-foreground: ${primaryForeground};` : null,
+]
+  .filter(Boolean)
+  .join(" ");
+---
+
+{declarations && <style set:html={`:root { ${declarations} }`} />}

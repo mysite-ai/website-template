@@ -1,0 +1,38 @@
+---
+import type { TenantContext } from "@/lib/tenant/types";
+import { Clock } from "lucide-react";
+
+interface Props {
+  tenant: TenantContext;
+}
+
+const { tenant } = Astro.props;
+const { location } = tenant;
+const weekday = location.weekday_hours;
+const weekend = location.weekend_hours;
+---
+
+{(weekday || weekend) && (
+  <section class="section-well mt-4">
+    <div class="map-card p-5 sm:p-6">
+      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <Clock size={14} aria-hidden="true" />
+        <span>Godziny otwarcia</span>
+      </div>
+      <div class="mt-3 space-y-1.5 text-sm">
+        {weekday && (
+          <div class="flex justify-between">
+            <span class="text-muted-foreground">Pon – Pt</span>
+            <span class="font-medium">{weekday}</span>
+          </div>
+        )}
+        {weekend && (
+          <div class="flex justify-between">
+            <span class="text-muted-foreground">Sob – Ndz</span>
+            <span class="font-medium">{weekend}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+)}

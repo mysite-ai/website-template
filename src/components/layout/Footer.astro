@@ -1,0 +1,23 @@
+---
+import type { TenantContext } from "@/lib/tenant/types";
+import MysiteBadge from "./MysiteBadge.astro";
+
+interface Props {
+  tenant: TenantContext;
+}
+
+const { tenant } = Astro.props;
+const { brand, location } = tenant;
+const displayName = brand.slug === location.slug ? brand.name : `${brand.name} · ${location.name}`;
+const year = new Date().getFullYear();
+---
+
+<footer class="section-well py-10 mt-16 text-center">
+  <p class="text-sm text-muted-foreground">© {year} {displayName}</p>
+  {location.address_line && (
+    <p class="text-xs text-muted-foreground mt-1">
+      {[location.address_line, location.postal_code, location.city].filter(Boolean).join(", ")}
+    </p>
+  )}
+  <MysiteBadge />
+</footer>

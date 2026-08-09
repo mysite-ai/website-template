@@ -1,0 +1,63 @@
+---
+import type { TenantContext } from "@/lib/tenant/types";
+import { formatPhone } from "@/lib/utils";
+import { Phone, Navigation, UtensilsCrossed, ShoppingBag } from "lucide-react";
+
+interface Props {
+  tenant: TenantContext;
+}
+
+const { tenant } = Astro.props;
+const { location } = tenant;
+
+const phoneHref = location.phone ? `tel:${location.phone.replace(/\s+/g, "")}` : null;
+const directionsHref = location.maps_search_query
+  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.maps_search_query)}`
+  : null;
+const deliveryHref = location.delivery[0]?.url ?? null;
+
+interface Tile {
+  icon: typeof Phone;
+  label: string;
+  href: string | null;
+  ariaLabel: string;
+  umamiEvent: string;
+}
+
+const tiles: Tile[] = [
+  { icon: Phone, label: "Zadzwoń", href: phoneHref, ariaLabel: `Zadzwoń: ${formatPhone(location.phone)}`, umamiEvent: "click-call" },
+  { icon: Navigation, label: "Dojazd", href: directionsHref, ariaLabel: "Dojazd", umamiEvent: "click-directions" },
+  { icon: UtensilsCrossed, label: "Menu", href: "/menu", ariaLabel: "Menu", umamiEvent: "click-menu" },
+  { icon: ShoppingBag, label: "Zamów", href: deliveryHref, ariaLabel: "Zamów online", umamiEvent: "click-delivery" },
+];
+---
+
+<section class="section-well mt-4">
+  <div class="grid grid-cols-4 gap-2">
+    {tiles.map((tile) => {
+      const Icon = tile.icon;
+      if (!tile.href) {
+        return (
+          <div class="action-tile opacity-40 cursor-not-allowed" aria-disabled="true">
+            <Icon size={20} aria-hidden="true" />
+            <span>{tile.label}</span>
+          </div>
+        );
+      }
+      const external = tile.href.startsWith("http");
+      return (
+        <a
+          href={tile.href}
+          class="action-tile"
+          aria-label={tile.ariaLabel}
+          data-umami-event={tile.umamiEvent}
+          data-umami-event-target="quick-actions"
+          {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+        >
+          <Icon size={20} aria-hidden="true" />
+          <span>{tile.label}</span>
+        </a>
+      );
+    })}
+  </div>
+</section>

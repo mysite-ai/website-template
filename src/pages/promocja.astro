@@ -1,0 +1,65 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import PromoFlow from "@/components/promo/PromoFlow.tsx";
+import { buildLocationSeo } from "@/lib/seo/schema";
+
+const tenant = Astro.locals.tenant;
+const { brand, location, primaryHostname } = tenant;
+const seo = buildLocationSeo({
+  tenant,
+  path: "/promocja",
+  title: `Promocja — ${brand.name}`,
+});
+
+const attribution =
+  location.attribution_promotion_id &&
+  location.attribution_campaign_id &&
+  location.attribution_org_id
+    ? {
+        promotionId: location.attribution_promotion_id,
+        campaignId: location.attribution_campaign_id,
+        orgId: location.attribution_org_id,
+      }
+    : null;
+
+const pixel = {
+  slug: location.slug,
+  city: location.city,
+  region: location.region,
+  attributionPromotionId: location.attribution_promotion_id,
+  attributionCampaignId: location.attribution_campaign_id,
+  attributionOrgId: location.attribution_org_id,
+  metaPixelIds: location.meta_pixel_ids,
+};
+
+const displayName = brand.slug === location.slug ? brand.name : `${brand.name} · ${location.name}`;
+const addressLabel = [location.address_line, location.postal_code, location.city]
+  .filter(Boolean)
+  .join(", ");
+---
+
+<BaseLayout tenant={tenant} seo={seo} currentPath="/promocja">
+  {attribution ? (
+    <PromoFlow
+      client:load
+      brandName={displayName}
+      brandSlug={brand.slug}
+      brandLogoUrl={brand.logo_url}
+      addressLabel={addressLabel}
+      domain={primaryHostname}
+      phone={location.phone}
+      promotionName={location.promotion_name_cached}
+      rewardDescription={location.reward_description_cached}
+      attribution={attribution}
+      pixel={pixel}
+    />
+  ) : (
+    <section class="section-well mt-6">
+      <div class="map-card p-6 text-center">
+        <p class="text-sm text-muted-foreground">
+          Program lojalnościowy nie jest jeszcze skonfigurowany dla tej lokalizacji.
+        </p>
+      </div>
+    </section>
+  )}
+</BaseLayout>

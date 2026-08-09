@@ -1,0 +1,33 @@
+---
+import type { TenantContext } from "@/lib/tenant/types";
+
+interface Props {
+  tenant: TenantContext;
+}
+
+const { tenant } = Astro.props;
+const { location } = tenant;
+---
+
+{location.maps_embed_url && (
+  <section class="section-well mt-4">
+    <div class="map-card overflow-hidden">
+      <iframe
+        src={location.maps_embed_url}
+        title={`Mapa — ${location.name}`}
+        class="w-full aspect-[16/10] border-0"
+        loading="lazy"
+        allowfullscreen
+        referrerpolicy="no-referrer-when-downgrade"
+      />
+      {(location.address_line || location.city) && (
+        <div class="p-5 sm:p-6">
+          <p class="text-sm font-semibold">📍 {location.name}</p>
+          <p class="mt-1 text-sm text-muted-foreground">
+            {[location.address_line, location.postal_code, location.city].filter(Boolean).join(", ")}
+          </p>
+        </div>
+      )}
+    </div>
+  </section>
+)}

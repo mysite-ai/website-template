@@ -1,0 +1,51 @@
+---
+import type { TenantContext } from "@/lib/tenant/types";
+
+interface Props {
+  tenant: TenantContext;
+}
+
+const { tenant } = Astro.props;
+const { brand, location } = tenant;
+const displayName = brand.slug === location.slug ? brand.name : `${brand.name} · ${location.name}`;
+const heroImage = tenant.location.gallery[0]?.src ?? null;
+const heroAlt = tenant.location.gallery[0]?.alt ?? displayName;
+---
+
+{heroImage && (
+  <link rel="preload" as="image" href={heroImage} />
+)}
+
+<section class="section-well pt-6">
+  <div class="map-card overflow-hidden">
+    {heroImage ? (
+      <div class="relative aspect-[16/10] w-full">
+        <img
+          src={heroImage}
+          alt={heroAlt}
+          class="absolute inset-0 h-full w-full object-cover"
+          fetchpriority="high"
+          decoding="async"
+        />
+        <div class="absolute inset-0 bg-gradient-to-t from-background/70 via-background/10 to-transparent" />
+      </div>
+    ) : (
+      <div class="aspect-[16/10] w-full bg-gradient-to-br from-muted to-background" />
+    )}
+
+    <div class="p-6 sm:p-8">
+      <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight">{displayName}</h1>
+      {brand.tagline && (
+        <p class="mt-2 text-sm sm:text-base text-muted-foreground leading-relaxed">
+          {brand.tagline}
+        </p>
+      )}
+
+      {(location.address_line || location.city) && (
+        <p class="mt-4 text-sm text-muted-foreground">
+          {[location.address_line, location.city].filter(Boolean).join(" · ")}
+        </p>
+      )}
+    </div>
+  </div>
+</section>

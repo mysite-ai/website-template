@@ -1,0 +1,68 @@
+---
+import "@/styles/globals.css";
+import type { TenantContext } from "@/lib/tenant/types";
+import BrandStyleTag from "@/components/layout/BrandStyleTag.astro";
+import Header from "@/components/layout/Header.astro";
+import Footer from "@/components/layout/Footer.astro";
+import MetaPixel from "@/components/attribution/MetaPixel.tsx";
+import Umami from "@/components/attribution/Umami.tsx";
+import type { LocationSeoResult } from "@/lib/seo/schema";
+
+interface Props {
+  tenant: TenantContext;
+  seo: LocationSeoResult;
+  currentPath: string;
+  bodyClass?: string;
+}
+
+const { tenant, seo, currentPath, bodyClass = "" } = Astro.props;
+const { org, brand, location } = tenant;
+
+const pixel = {
+  slug: location.slug,
+  city: location.city,
+  region: location.region,
+  attributionPromotionId: location.attribution_promotion_id,
+  attributionCampaignId: location.attribution_campaign_id,
+  attributionOrgId: location.attribution_org_id,
+  metaPixelIds: location.meta_pixel_ids,
+};
+
+const hasPixel = location.meta_pixel_ids && location.meta_pixel_ids.length > 0;
+const hasUmami = !!location.umami_website_id;
+---
+
+<!doctype html>
+<html lang={org.default_locale ?? "pl"}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="format-detection" content="telephone=no" />
+    <title>{seo.title}</title>
+    <meta name="description" content={seo.description} />
+    <link rel="canonical" href={seo.canonical} />
+
+    <meta property="og:title" content={seo.title} />
+    <meta property="og:description" content={seo.description} />
+    <meta property="og:url" content={seo.canonical} />
+    <meta property="og:type" content="website" />
+    {brand.logo_url && <meta property="og:image" content={brand.logo_url} />}
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <BrandStyleTag brand={brand} />
+
+    <script is:inline type="application/ld+json" set:html={seo.jsonLd} />
+  </head>
+  <body class={bodyClass}>
+    <Header tenant={tenant} currentPath={currentPath} />
+
+    <main>
+      <slot />
+    </main>
+
+    <Footer tenant={tenant} />
+
+    {hasPixel && <MetaPixel client:idle location={pixel} />}
+    {hasUmami && <Umami client:idle websiteId={location.umami_website_id!} />}
+  </body>
+</html>
