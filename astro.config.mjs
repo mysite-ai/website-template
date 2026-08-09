@@ -11,6 +11,19 @@ export default defineConfig({
     imageService: true,
   }),
   integrations: [react()],
+  image: {
+    // Whitelist our Supabase Storage host so Astro/Vercel image optimization
+    // (`imageService: true` + astro:assets <Image>) can resize + cache gallery
+    // photos at the edge. Without this, remote src is rejected as unsafe.
+    domains: ["tkltfqshwwxykxhxthem.supabase.co"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "tkltfqshwwxykxhxthem.supabase.co",
+        pathname: "/storage/v1/object/public/assets/**",
+      },
+    ],
+  },
   vite: {
     plugins: [tailwindcss()],
   },

@@ -7,16 +7,28 @@ interface Props {
 }
 
 /**
- * GalleryBrowser — clean square gallery grid + fullscreen lightbox preview.
+ * GalleryBrowser — square gallery grid + fullscreen lightbox preview.
+ *
+ * Performance notes:
+ *   - Any image URL that ends with `-800w.webp` is treated as a member of a
+ *     three-size responsive set (`-400w.webp`, `-800w.webp`, `-1600w.webp`)
+ *     living under the same folder. We emit a `srcset`+`sizes` combo so the
+ *     browser can pick the smallest variant that still fills the tile
+ *     without downloading 1.5–4 MB originals.
+ *   - First tile: `loading="eager" fetchpriority="high"` so the LCP image
+ *     starts fetching immediately.
+ *   - All other tiles: `loading="lazy" decoding="async"`.
+ *   - `content-visibility: auto` on off-screen tiles hints the browser to
+ *     skip layout/paint work on rows well below the fold.
  *
  * Layout: 2 columns on mobile, 3 columns from `sm:` up. Every tile is a
- * perfect square rendered `object-cover`. This matches the "Our cafe" grid
- * on marszalkowska.thewhitebearcoffee.pl and reads well on any tenant
- * because tiles are uniform (no fragile mosaic hierarchy).
+ * perfect square rendered `object-cover`. Matches the "Our cafe" grid on
+ * marszalkowska.thewhitebearcoffee.pl.
  *
  * Click any tile → opens a fullscreen dialog with keyboard nav
  * (Arrow left/right, Escape). Follows shadcn Dialog conventions
- * but styled for image preview (dark backdrop, no chrome).
+ * but styled for image preview (dark backdrop, no chrome). The lightbox
+ * jumps straight to the `-1600w.webp` variant for a crisp full-view.
  *
  * Defensive: broken image URLs are tracked in state via `onError`
  * and silently dropped from both the grid AND the lightbox so an
@@ -35,14 +47,11 @@ export default function GalleryBrowser({ images }: Props) {
     });
   }, []);
 
-  // Filter out broken images. Everything downstream — grid layout, lightbox
-  // count, prev/next — reads from this filtered array.
   const visible = useMemo(
     () => images.filter((img) => !brokenSrcs.has(img.src)),
     [images, brokenSrcs],
   );
 
-  // If the currently-selected image is dropped as broken, close the lightbox.
   useEffect(() => {
     if (selectedIndex === null) return;
     if (selectedIndex >= visible.length) setSelectedIndex(null);
@@ -84,8 +93,6 @@ export default function GalleryBrowser({ images }: Props) {
 
   const selected = selectedIndex !== null ? visible[selectedIndex] : null;
 
-  // If we only have 4 tiles, keep a clean 2×2 on every breakpoint.
-  // Otherwise (6, 9) fall back to 3-col from sm: up so the last row fills.
   const gridClass =
     visible.length === 4
       ? "grid grid-cols-2 gap-2 sm:gap-2.5"
@@ -98,6 +105,7 @@ export default function GalleryBrowser({ images }: Props) {
           <ImageTile
             key={image.src}
             image={image}
+            eager={i === 0}
             onClick={() => setSelectedIndex(i)}
             onError={() => markBroken(image.src)}
           />
@@ -119,25 +127,64 @@ export default function GalleryBrowser({ images }: Props) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Responsive URL builder
+// ---------------------------------------------------------------------------
+
+const SIZE_RE = /-800w\.webp$/;
+
+/**
+ * If `src` matches our v3 responsive naming convention (`.../foo-800w.webp`),
+ * return the `srcset` + `sizes` + hi-res URLs. Otherwise return `null` and
+ * the caller falls back to a single-source `<img src>` (legacy behaviour).
+ */
+function responsiveSet(src: string): {
+  srcSet: string;
+  sizes: string;
+  full: string;
+} | null {
+  if (!SIZE_RE.test(src)) return null;
+  const base = src.replace(SIZE_RE, "");
+  return {
+    srcSet: [
+      `${base}-400w.webp 400w`,
+      `${base}-800w.webp 800w`,
+      `${base}-1600w.webp 1600w`,
+    ].join(", "),
+    // Tile widths (approximate):
+    //   mobile (default):        ~48vw  (2-col grid, minus gap)
+    //   sm and up (≥640px):      ~32vw  (3-col grid)
+    //   md and up (≥768px):      ~240px (container caps around 720px wide)
+    sizes: "(min-width: 768px) 240px, (min-width: 640px) 32vw, 48vw",
+    full: `${base}-1600w.webp`,
+  };
+}
+
 interface ImageTileProps {
   image: GalleryImage;
+  eager: boolean;
   onClick: () => void;
   onError: () => void;
 }
 
-function ImageTile({ image, onClick, onError }: ImageTileProps) {
+function ImageTile({ image, eager, onClick, onError }: ImageTileProps) {
+  const set = responsiveSet(image.src);
+  const imgProps = set
+    ? { src: image.src, srcSet: set.srcSet, sizes: set.sizes }
+    : { src: image.src };
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group relative block aspect-square w-full overflow-hidden rounded-xl ring-1 ring-foreground/10 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="group relative block aspect-square w-full overflow-hidden rounded-xl ring-1 ring-foreground/10 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 [content-visibility:auto] [contain-intrinsic-size:400px]"
       aria-label={image.alt || "Open image"}
       data-umami-event="click-gallery-tile"
     >
       <img
-        src={image.src}
+        {...imgProps}
         alt=""
-        loading="lazy"
+        loading={eager ? "eager" : "lazy"}
+        fetchPriority={eager ? "high" : "auto"}
         decoding="async"
         onError={onError}
         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
@@ -156,7 +203,19 @@ interface LightboxProps {
   onError: () => void;
 }
 
-function Lightbox({ image, index, total, onClose, onPrev, onNext, onError }: LightboxProps) {
+function Lightbox({
+  image,
+  index,
+  total,
+  onClose,
+  onPrev,
+  onNext,
+  onError,
+}: LightboxProps) {
+  // In the lightbox we want the full-quality asset if we have a responsive
+  // set; otherwise fall back to whatever URL we have.
+  const set = responsiveSet(image.src);
+  const previewSrc = set?.full ?? image.src;
   return (
     <div
       role="dialog"
@@ -166,7 +225,7 @@ function Lightbox({ image, index, total, onClose, onPrev, onNext, onError }: Lig
       onClick={onClose}
     >
       <img
-        src={image.src}
+        src={previewSrc}
         alt={image.alt}
         onError={onError}
         className="max-h-[90vh] max-w-[92vw] rounded-lg object-contain shadow-2xl animate-in zoom-in-95 duration-200"
