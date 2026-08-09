@@ -18,15 +18,20 @@ Astro.response.headers.set(
 ---
 
 <BaseLayout tenant={tenant} seo={seo} currentPath="/menu">
-  <section class="section-well mt-6">
-    <h1 class="text-2xl font-semibold tracking-tight mb-4">Menu</h1>
+  <section class="section-well pt-8 pb-4">
+    <p class="section-label">{tenant.brand.name}</p>
+    <h1 class="mt-1.5 text-[28px] font-semibold tracking-tight leading-tight">Menu</h1>
+  </section>
 
-    {menu && menu.categories.length > 0 ? (
+  {menu && menu.categories.length > 0 ? (
+    <section class="section-well mt-2 pb-16">
       <MenuBrowser client:visible menu={menu} />
-    ) : (
-      <div class="map-card p-6 text-center">
+    </section>
+  ) : (
+    <section class="section-well mt-4 pb-16">
+      <div class="card p-8 text-center">
         <p class="text-sm text-muted-foreground">Menu coming soon — check back later.</p>
       </div>
-    )}
-  </section>
+    </section>
+  )}
 </BaseLayout>

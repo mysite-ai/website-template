@@ -8,7 +8,6 @@ interface Props {
 
 const { tenant, currentPath } = Astro.props;
 const { brand, location } = tenant;
-
 const displayName = brand.slug === location.slug ? brand.name : `${brand.name} · ${location.name}`;
 
 const links: Array<{ href: string; label: string }> = [
@@ -18,29 +17,29 @@ const links: Array<{ href: string; label: string }> = [
 ];
 ---
 
-<header class="section-well pt-6 pb-2">
-  <div class="flex items-center justify-between">
-    <a href="/" class="flex items-center gap-3" aria-label={displayName}>
+<header class="sticky top-0 z-30 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+  <div class="section-well flex h-14 items-center justify-between">
+    <a href="/" class="flex items-center gap-2.5" aria-label={displayName}>
       {brand.logo_url ? (
-        <img src={brand.logo_url} alt={displayName} class="h-9 w-9 object-contain" loading="eager" />
+        <img src={brand.logo_url} alt="" class="h-7 w-7 object-contain" loading="eager" />
       ) : (
-        <div class="h-9 w-9 rounded-lg bg-primary text-primary-foreground grid place-items-center text-sm font-semibold">
+        <div class="h-7 w-7 rounded-lg bg-foreground text-background grid place-items-center text-[11px] font-semibold">
           {displayName.charAt(0)}
         </div>
       )}
-      <span class="text-sm font-semibold tracking-tight">{displayName}</span>
+      <span class="text-[13px] font-semibold tracking-tight">{displayName}</span>
     </a>
 
     <nav aria-label="Main navigation">
-      <ul class="flex items-center gap-1">
+      <ul class="flex items-center gap-0.5">
         {links.map((link) => (
           <li>
             <a
               href={link.href}
               class:list={[
-                "px-3 py-1.5 text-sm rounded-full transition-colors",
+                "px-3 py-1.5 text-[12px] font-medium rounded-full transition-colors",
                 currentPath === link.href
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-foreground text-background"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted",
               ]}
               aria-current={currentPath === link.href ? "page" : undefined}

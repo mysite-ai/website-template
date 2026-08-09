@@ -1,7 +1,7 @@
 ---
 import type { TenantContext } from "@/lib/tenant/types";
 import { formatPhone } from "@/lib/utils";
-import { MapPin, Navigation, Phone } from "lucide-react";
+import { Navigation, Phone } from "lucide-react";
 
 interface Props {
   tenant: TenantContext;
@@ -20,11 +20,9 @@ const shouldRender = addressLine1 || location.maps_embed_url;
 ---
 
 {shouldRender && (
-  <section id="location" class="section-well mt-6 scroll-mt-16">
-    <h2 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 px-1">
-      Location
-    </h2>
-    <div class="map-card overflow-hidden">
+  <section id="location" class="section-well mt-10 scroll-mt-16">
+    <p class="section-label mb-3 px-1">Location</p>
+    <div class="card overflow-hidden">
       {location.maps_embed_url && (
         <iframe
           src={location.maps_embed_url}
@@ -37,37 +35,36 @@ const shouldRender = addressLine1 || location.maps_embed_url;
       )}
 
       <div class="p-5 sm:p-6">
-        <div class="flex items-start gap-3 mb-4">
-          <MapPin size={20} className="mt-0.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <div>
-            <p class="text-base sm:text-lg font-medium">{location.name}</p>
-            {addressLine1 && <p class="text-sm text-muted-foreground">{addressLine1}</p>}
-            {addressLine2 && <p class="text-sm text-muted-foreground">{addressLine2}</p>}
-          </div>
-        </div>
+        <p class="text-[15px] font-semibold tracking-tight">{location.name}</p>
+        {addressLine1 && (
+          <p class="mt-0.5 text-[13px] text-muted-foreground">{addressLine1}</p>
+        )}
+        {addressLine2 && (
+          <p class="text-[13px] text-muted-foreground">{addressLine2}</p>
+        )}
 
-        <div class="grid gap-2 sm:grid-cols-2">
+        <div class="mt-4 grid gap-2 sm:grid-cols-2">
           {directionsHref && (
             <a
               href={directionsHref}
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold py-3 hover:scale-[1.01] transition-transform"
+              class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground text-[14px] font-semibold py-2.5 hover:opacity-90 transition-opacity"
               data-umami-event="click-directions"
               data-umami-event-target="section-location"
             >
-              <Navigation size={18} aria-hidden="true" />
-              Get directions
+              <Navigation size={16} strokeWidth={2} aria-hidden="true" />
+              Directions
             </a>
           )}
           {phoneHref && location.phone && (
             <a
               href={phoneHref}
-              class="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card text-foreground text-sm font-semibold py-3 hover:bg-muted transition-colors"
+              class="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card text-foreground text-[14px] font-semibold py-2.5 hover:bg-muted transition-colors tabular-nums"
               data-umami-event="click-call"
               data-umami-event-target="section-location"
             >
-              <Phone size={18} aria-hidden="true" />
+              <Phone size={16} strokeWidth={2} aria-hidden="true" />
               {formatPhone(location.phone)}
             </a>
           )}

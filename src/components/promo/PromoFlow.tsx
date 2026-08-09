@@ -116,35 +116,35 @@ export default function PromoFlow(props: PromoFlowProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="section-well py-8">
+      <div className="section-well py-6 sm:py-8">
         <a
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors"
           data-umami-event="click-back"
           data-umami-event-target="promo-page"
         >
-          <ArrowLeft size={18} aria-hidden="true" />
+          <ArrowLeft size={16} strokeWidth={2} aria-hidden="true" />
           Back
         </a>
 
-        <div className="mt-6 text-center">
+        <div className="mt-8 text-center">
           {brandLogoUrl ? (
             <img
               src={brandLogoUrl}
               alt={brandName}
-              className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 object-contain"
+              className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 object-contain"
             />
           ) : (
-            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-primary text-primary-foreground grid place-items-center text-2xl font-semibold">
+            <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-muted text-foreground grid place-items-center text-2xl font-semibold">
               {brandName.charAt(0)}
             </div>
           )}
 
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-2">
+          <h1 className="text-[26px] sm:text-[30px] font-semibold tracking-tight leading-tight">
             {promotionLabel}
           </h1>
-          <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
-            Scan this QR code at the counter to claim your reward.
+          <p className="mt-2 text-[14px] text-muted-foreground leading-relaxed max-w-[24rem] mx-auto">
+            Scan the QR code at the counter to claim your reward.
           </p>
         </div>
 

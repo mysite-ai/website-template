@@ -18,27 +18,17 @@ interface Social {
 
 const socials: Social[] = [
   location.instagram_url
-    ? {
-        icon: Instagram,
-        label: "Instagram",
-        href: location.instagram_url,
-        umamiTarget: "instagram-hero",
-      }
+    ? { icon: Instagram, label: "Instagram", href: location.instagram_url, umamiTarget: "instagram-hero" }
     : null,
   location.facebook_url
-    ? {
-        icon: Facebook,
-        label: "Facebook",
-        href: location.facebook_url,
-        umamiTarget: "facebook-hero",
-      }
+    ? { icon: Facebook, label: "Facebook", href: location.facebook_url, umamiTarget: "facebook-hero" }
     : null,
 ].filter((s): s is Social => s !== null);
 ---
 
 {socials.length > 0 && (
-  <section class="section-well mt-4">
-    <div class:list={["grid gap-2 sm:gap-3", socials.length > 1 ? "grid-cols-2" : "grid-cols-1"]}>
+  <section class="section-well mt-4 flex justify-center">
+    <div class="flex items-center gap-2">
       {socials.map((social) => {
         const Icon = social.icon;
         return (
@@ -46,12 +36,12 @@ const socials: Social[] = [
             href={social.href}
             target="_blank"
             rel="noopener noreferrer"
-            class="map-card flex items-center justify-center gap-2 py-3 sm:py-4 text-sm font-medium hover:bg-card transition-colors"
+            class="icon-button"
+            aria-label={social.label}
             data-umami-event="click-social"
             data-umami-event-target={social.umamiTarget}
           >
-            <Icon size={20} aria-hidden="true" />
-            {social.label}
+            <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
           </a>
         );
       })}

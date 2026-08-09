@@ -1,3 +1,4 @@
+import { ArrowUpRight } from "lucide-react";
 import { formatPromoEndDate, usePromoCountdown } from "@/lib/promo/usePromoCountdown";
 
 interface Props {
@@ -10,13 +11,14 @@ interface Props {
 }
 
 /**
- * PromoBanner — bright gradient CTA that anchors the hero. Ports the
- * "promo lives in the hero with a live countdown" pattern that wbc-v2's
- * Index.tsx has proven in production.
+ * PromoBanner — dark premium card that anchors the hero, replacing the
+ * earlier neon-orange treatment. The one accent is a subtle red dot +
+ * "Ends" caption; everything else is monochrome so the promo feels
+ * like an Apple keynote card rather than a Groupon banner.
  *
- * Mounted as a React island (`client:load`) because the countdown
- * ticks every second. Rendered as an <a href="/promocja"> so it works
- * with Astro's SSR routing and Meta Pixel click tracking.
+ * Mounted `client:load` because the countdown ticks every second.
+ * Rendered as <a> so it works with Astro SSR routing + Meta Pixel
+ * click tracking.
  */
 export default function PromoBanner({
   href,
@@ -28,46 +30,71 @@ export default function PromoBanner({
 }: Props) {
   const countdown = usePromoCountdown();
   const endLabel = formatPromoEndDate(countdown.target, locale);
-
   const dayLabel = countdown.days === 1 ? "day" : "days";
 
   return (
     <a
       href={href}
-      className="group relative block overflow-hidden rounded-2xl border-2 border-orange-400 bg-gradient-to-r from-orange-500 via-red-500 to-orange-500 p-5 shadow-[0_4px_20px_-4px_rgb(249_115_22/0.5)] transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_6px_28px_-4px_rgb(249_115_22/0.7)]"
+      className="group relative block overflow-hidden rounded-3xl bg-neutral-950 p-6 text-neutral-100 shadow-[0_2px_8px_rgb(0_0_0/0.06),0_18px_50px_-24px_rgb(0_0_0/0.35)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_2px_8px_rgb(0_0_0/0.08),0_28px_60px_-24px_rgb(0_0_0/0.45)] dark:bg-neutral-900"
       data-umami-event="click-promo-cta"
       data-umami-event-target="hero"
     >
-      <div className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-      <div className="relative text-center text-white">
-        <p className="mb-1 text-xl font-bold drop-shadow-sm sm:text-2xl">🎁 {headline}</p>
-        <p className="mb-3 text-sm font-medium text-white/90">{subline}</p>
+      {/* subtle amber gradient in the top-right corner as the sole accent */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full bg-amber-500/25 blur-3xl"
+      />
 
-        {countdown.expired ? (
-          <p className="text-sm font-medium text-yellow-200">{expiredLabel}</p>
-        ) : (
-          <>
-            <div className="mb-2 flex justify-center gap-2 sm:gap-3">
-              {[
-                { value: countdown.days, label: dayLabel },
-                { value: countdown.hours, label: "hrs" },
-                { value: countdown.minutes, label: "min" },
-                { value: countdown.seconds, label: "sec" },
-              ].map((item, i) => (
-                <div key={i} className="text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-white/30 bg-white/20 text-xl font-bold tabular-nums text-white backdrop-blur sm:h-14 sm:w-14 sm:text-2xl">
-                    {String(item.value).padStart(2, "0")}
-                  </div>
-                  <p className="mt-1 text-[10px] font-medium text-white/80 sm:text-xs">{item.label}</p>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs font-bold text-yellow-200">
-              {validUntilLabel.replace("{date}", endLabel)}
+      <div className="relative flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            </span>
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+              Live rewards
             </p>
-          </>
-        )}
+          </div>
+
+          <p className="mt-3 text-lg font-semibold leading-tight tracking-tight text-white sm:text-xl">
+            {headline}
+          </p>
+          <p className="mt-1 text-[13px] leading-relaxed text-neutral-400">
+            {subline}
+          </p>
+        </div>
+
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:bg-white/20">
+          <ArrowUpRight size={16} strokeWidth={2.25} aria-hidden="true" />
+        </div>
       </div>
+
+      {countdown.expired ? (
+        <p className="relative mt-5 text-sm text-neutral-400">{expiredLabel}</p>
+      ) : (
+        <div className="relative mt-6">
+          <div className="grid grid-cols-4 gap-3">
+            {[
+              { value: countdown.days, label: dayLabel },
+              { value: countdown.hours, label: "hrs" },
+              { value: countdown.minutes, label: "min" },
+              { value: countdown.seconds, label: "sec" },
+            ].map((item, i) => (
+              <div key={i} className="num-tile">
+                <span className="num-tile__value text-white">
+                  {String(item.value).padStart(2, "0")}
+                </span>
+                <span className="num-tile__label text-neutral-400">{item.label}</span>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-5 text-[11px] uppercase tracking-[0.14em] text-neutral-500">
+            {validUntilLabel.replace("{date}", endLabel)}
+          </p>
+        </div>
+      )}
     </a>
   );
 }

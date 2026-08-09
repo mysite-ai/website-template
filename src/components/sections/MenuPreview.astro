@@ -1,6 +1,6 @@
 ---
 import type { TenantContext } from "@/lib/tenant/types";
-import { UtensilsCrossed } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 interface Props {
   tenant: TenantContext;
@@ -8,45 +8,52 @@ interface Props {
 
 const { tenant } = Astro.props;
 const menu = tenant.location.menu;
-
-// Show up to 3 category chips as a teaser. wbc-v2's pattern: give a
-// preview on the landing so users don't have to navigate to see what
-// kind of menu the place has, but keep the full render on /menu.
 const preview = menu?.categories.slice(0, 3) ?? [];
+const totalItems = menu?.categories.reduce((acc, c) => acc + c.items.length, 0) ?? 0;
 const showSection = preview.length > 0;
 ---
 
 {showSection && (
-  <section class="section-well mt-6">
-    <div class="map-card p-5 sm:p-6">
-      <h2 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Menu</h2>
+  <section class="section-well mt-10">
+    <div class="mb-3 flex items-baseline justify-between px-1">
+      <p class="section-label">Menu</p>
+      {totalItems > 0 && (
+        <span class="text-[11px] text-muted-foreground tabular-nums">{totalItems} items</span>
+      )}
+    </div>
 
-      <div class="space-y-2 mb-5">
+    <div class="card overflow-hidden">
+      <ul class="divide-y divide-border/40">
         {preview.map((cat) => {
           const itemCount = cat.items.length;
           const first = cat.items[0];
-          const preview = first ? `${first.name}${cat.items[1] ? ` · ${cat.items[1].name}` : ""}` : null;
+          const second = cat.items[1];
+          const line = [first?.name, second?.name].filter(Boolean).join(" · ");
           return (
-            <div class="rounded-xl border border-border/60 bg-card/80 p-3 sm:p-4">
-              <p class="text-sm font-semibold mb-0.5">{cat.name}</p>
-              {preview && (
-                <p class="text-xs text-muted-foreground line-clamp-1">
-                  {preview}{itemCount > 2 ? ` · +${itemCount - 2} more` : ""}
+            <li class="px-5 py-3.5 sm:px-6">
+              <div class="flex items-baseline justify-between gap-3">
+                <p class="text-[15px] font-semibold tracking-tight truncate">{cat.name}</p>
+                <span class="shrink-0 text-[11px] text-muted-foreground tabular-nums">
+                  {itemCount}
+                </span>
+              </div>
+              {line && (
+                <p class="mt-0.5 text-[13px] text-muted-foreground line-clamp-1">
+                  {line}{itemCount > 2 ? ` · +${itemCount - 2} more` : ""}
                 </p>
               )}
-            </div>
+            </li>
           );
         })}
-      </div>
-
+      </ul>
       <a
         href="/menu"
-        class="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:scale-[1.01] transition-transform"
+        class="flex items-center justify-between border-t border-border/50 bg-muted/30 px-5 py-3.5 sm:px-6 text-[14px] font-semibold text-foreground hover:bg-muted transition-colors"
         data-umami-event="click-view-menu"
         data-umami-event-target="section-menu-preview"
       >
-        <UtensilsCrossed size={18} aria-hidden="true" />
-        View full menu
+        <span>View full menu</span>
+        <ArrowRight size={16} strokeWidth={2} aria-hidden="true" />
       </a>
     </div>
   </section>
