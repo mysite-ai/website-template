@@ -1,13 +1,14 @@
 ---
 import type { TenantContext } from "@/lib/tenant/types";
 import PromoBanner from "@/components/promo/PromoBanner.tsx";
+import { Star } from "lucide-react";
 
 interface Props {
   tenant: TenantContext;
 }
 
 const { tenant } = Astro.props;
-const { org, brand, location } = tenant;
+const { brand, location } = tenant;
 
 const brandName = brand.name;
 const locationLabel = [location.city, location.region].filter(Boolean).join(" · ");
@@ -15,51 +16,148 @@ const promoConfigured =
   !!location.attribution_promotion_id &&
   !!location.attribution_campaign_id &&
   !!location.attribution_org_id;
+
+const rating = location.google_rating;
+const reviewCount = location.google_reviews_count;
+const hasRating = rating !== null && rating !== undefined && reviewCount !== null && reviewCount > 0;
+const ratingHref = location.google_place_url;
+
+/*
+ * Hero logo sizing.
+ *
+ * Assumes tenant logos are tight-cropped. With that assumption, one
+ * standard size looks good on every tenant. The `logo_hero_max_height`
+ * column is an escape hatch for the rare brand whose mark is
+ * uncommonly tall or short even with a good crop — otherwise every
+ * tenant leaves it NULL and inherits the standard.
+ *
+ * Standard (component defaults, used when null):
+ *   - Desktop: 200 px max-height
+ *   - Mobile:  160 px (auto-scaled 80%)
+ *
+ * `object-contain` on the img preserves aspect ratio; wide wordmarks
+ * end up shorter than max-height, tall marks fill it. The natural
+ * width of the file drives horizontal size — no `max-width` here, so
+ * files that were sloppily left with transparent side-padding will
+ * look small (nudge the operator to re-crop, not to bump a column).
+ */
+const logoMaxHeightDesktop = brand.logo_hero_max_height ?? 200;
+const logoMaxHeightMobile = Math.round(logoMaxHeightDesktop * 0.8);
 ---
 
 {brand.logo_url && <link rel="preload" as="image" href={brand.logo_url} />}
 
-<section class="section-well pt-12 pb-2">
-  <div class="text-center">
-    {brand.logo_url ? (
-      <img
-        src={brand.logo_url}
-        alt={brandName}
-        class="max-w-[320px] max-h-32 mx-auto mb-6 object-contain"
-        fetchpriority="high"
-        decoding="async"
-      />
-    ) : (
-      <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-primary text-primary-foreground grid place-items-center text-2xl font-semibold">
-        {brandName.charAt(0)}
+{/* Full-bleed hero band with soft brand tint. On desktop this becomes the
+    canvas that makes the page feel like a real landing page rather than a
+    phone screen dropped into whitespace. */}
+<section
+  class="relative overflow-hidden pb-6 pt-10 sm:pt-12 lg:pt-20 lg:pb-10"
+  style="background: radial-gradient(60% 65% at 50% 0%, color-mix(in oklab, var(--primary) 8%, transparent) 0%, transparent 70%), linear-gradient(180deg, color-mix(in oklab, var(--primary) 3%, var(--background)) 0%, var(--background) 100%);"
+>
+  <div class="section-well">
+    <div class="text-center">
+      {brand.logo_url ? (
+        <img
+          src={brand.logo_url}
+          alt={brandName}
+          class="hero-logo fade-rise mx-auto mb-6 w-auto max-w-[85%] object-contain lg:max-w-[75%]"
+          style={`max-height:${logoMaxHeightMobile}px;--hero-logo-max-h-desktop:${logoMaxHeightDesktop}px`}
+          fetchpriority="high"
+          decoding="async"
+        />
+      ) : (
+        <div class="fade-rise mx-auto mb-6 grid h-24 w-24 place-items-center rounded-3xl bg-muted text-3xl font-semibold text-foreground/70 ring-1 ring-foreground/10">
+          {brandName.charAt(0)}
+        </div>
+      )}
+
+      <h1 class="fade-rise fade-rise-delay-1 text-[30px] font-semibold leading-[1.05] tracking-tight sm:text-[38px] lg:text-[52px]">
+        {brandName}
+      </h1>
+
+      {locationLabel && (
+        <p class="fade-rise fade-rise-delay-2 mt-2 text-[12px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          {locationLabel}
+        </p>
+      )}
+
+      {hasRating && (
+        <div class="fade-rise fade-rise-delay-2 mt-4">
+          {ratingHref ? (
+            <a
+              href={ratingHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-[13px] font-medium text-foreground ring-1 ring-foreground/10 shadow-sm transition-shadow hover:shadow-md"
+              aria-label={`${rating} stars from ${reviewCount} Google reviews`}
+              data-umami-event="click-google-reviews"
+              data-umami-event-target="hero"
+            >
+              <span class="tabular-nums">{rating!.toFixed(1)}</span>
+              <span class="inline-flex items-center gap-px" aria-hidden="true">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <Star
+                    size={12}
+                    strokeWidth={0}
+                    fill={i < Math.round(rating!) ? "#f5b301" : "#e6e6e6"}
+                    aria-hidden="true"
+                  />
+                ))}
+              </span>
+              <span class="text-muted-foreground">·</span>
+              <span class="tabular-nums text-muted-foreground">
+                {reviewCount!.toLocaleString()} reviews
+              </span>
+            </a>
+          ) : (
+            <div class="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-[13px] font-medium text-foreground ring-1 ring-foreground/10 shadow-sm">
+              <span class="tabular-nums">{rating!.toFixed(1)}</span>
+              <span class="inline-flex items-center gap-px" aria-hidden="true">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <Star
+                    size={12}
+                    strokeWidth={0}
+                    fill={i < Math.round(rating!) ? "#f5b301" : "#e6e6e6"}
+                    aria-hidden="true"
+                  />
+                ))}
+              </span>
+              <span class="text-muted-foreground">·</span>
+              <span class="tabular-nums text-muted-foreground">
+                {reviewCount!.toLocaleString()} reviews
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {brand.tagline && (
+        <p class="fade-rise fade-rise-delay-2 mx-auto mt-5 max-w-[30rem] text-[15px] leading-relaxed text-muted-foreground lg:mt-6 lg:text-[17px]">
+          {brand.tagline}
+        </p>
+      )}
+    </div>
+
+    {promoConfigured && (
+      <div class="fade-rise fade-rise-delay-3 mx-auto mt-8 max-w-[30rem] lg:mt-10 lg:max-w-[36rem]">
+        <PromoBanner
+          client:load
+          href="/rewards"
+          headline={location.reward_description_cached ?? location.promotion_name_cached ?? "Get your reward"}
+          subline="Tap to get your QR code"
+        />
       </div>
     )}
-
-    <h1 class="text-[28px] sm:text-[32px] font-semibold tracking-tight leading-tight">
-      {brandName}
-    </h1>
-
-    {locationLabel && (
-      <p class="mt-1.5 text-[13px] text-muted-foreground tracking-wide">
-        {locationLabel}
-      </p>
-    )}
-
-    {brand.tagline && (
-      <p class="mt-4 text-[15px] text-muted-foreground leading-relaxed max-w-[26rem] mx-auto">
-        {brand.tagline}
-      </p>
-    )}
   </div>
-
-  {promoConfigured && (
-    <div class="mt-6">
-      <PromoBanner
-        client:load
-        href="/promocja"
-        headline={location.reward_description_cached ?? location.promotion_name_cached ?? "Get your reward"}
-        subline="Tap to get your QR code 🎉"
-      />
-    </div>
-  )}
 </section>
+
+<style
+  set:html={`
+    /* Desktop-only override: the hero logo grows to its full
+     * tenant-configured max-height on wide screens. Custom property
+     * is set inline per tenant. */
+    @media (min-width: 1024px) {
+      .hero-logo { max-height: var(--hero-logo-max-h-desktop) !important; }
+    }
+  `}
+/>

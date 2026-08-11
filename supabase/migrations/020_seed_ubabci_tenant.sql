@@ -40,7 +40,7 @@ Chef **Teresa Turek** learned traditional Polish cooking from her grandmother du
 **From Poland with love — zapraszamy!**
 $md$,
       jsonb_build_object(
-        -- Deep Polish crimson (godło Polski) — warm, appetite-forward
+        -- Deep Polish crimson (matches the Polish coat of arms) — warm, appetite-forward
         'primary', 'oklch(0.55 0.20 25)',
         'primary_foreground', 'oklch(0.99 0.005 25)'
       )

@@ -1,24 +1,27 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { parsePhoneNumberFromString } from "libphonenumber-js";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 /**
- * Format a Polish phone stored as either `+48500000000` or `500000000`
- * into `+48 500 000 000` for display. Non-PL phones are returned as-is
- * with light grouping.
+ * Format a phone number stored as E.164 (or any other libphonenumber-js
+ * parseable form) into a human-readable international string:
+ *
+ *   "+48500111222"     -> "+48 500 111 222"
+ *   "+15555550100"     -> "+1 555 555 0100"
+ *   "500111222"        -> "500 111 222"   (national, no country context)
+ *
+ * When parsing fails we return the raw input untouched — better a raw
+ * number than blowing up a footer or contact card.
  */
 export function formatPhone(raw: string | null | undefined): string {
   if (!raw) return "";
-  const digits = raw.replace(/[^\d+]/g, "");
-  const match = /^\+48(\d{9})$/.exec(digits) ?? /^(\d{9})$/.exec(digits);
-  if (match?.[1]) {
-    const n = match[1];
-    return `+48 ${n.slice(0, 3)} ${n.slice(3, 6)} ${n.slice(6)}`;
-  }
-  return digits;
+  const parsed = parsePhoneNumberFromString(raw)
+    ?? parsePhoneNumberFromString(raw, "PL");
+  return parsed ? parsed.formatInternational() : raw;
 }
 
 export function stripSlash(value: string): string {

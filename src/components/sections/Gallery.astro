@@ -7,12 +7,27 @@ interface Props {
 }
 
 const { tenant } = Astro.props;
-const gallery = tenant.location.gallery.slice(0, 9);
+
+/*
+ * Cap gallery to 8 photos on the homepage so a 4-col desktop grid
+ * always fills two clean rows. lcm(2, 3, 4) = 12 but 8 reads better
+ * as "portfolio" than a wall of thumbnails, and 8 = 2×4 (desktop),
+ * 4×2 (mobile 2-col) which both fill cleanly.
+ *
+ * The section breaks out of `section-well` on desktop so the grid
+ * can span up to ~1120px — matches the Kinoko pattern where the
+ * gallery is the widest thing on the page.
+ */
+const gallery = tenant.location.gallery.slice(0, 8);
 ---
 
 {gallery.length > 0 && (
-  <section class="section-well mt-6">
-    <p class="section-label mb-3 px-1">Gallery</p>
-    <GalleryBrowser client:visible images={gallery} />
+  <section class="mt-10 lg:mt-16">
+    <div class="section-well mb-4 lg:mb-6">
+      <h2 class="section-heading px-1">Gallery</h2>
+    </div>
+    <div class="mx-auto w-full max-w-[70rem] px-5 sm:px-6 lg:px-8">
+      <GalleryBrowser client:visible images={gallery} />
+    </div>
   </section>
 )}

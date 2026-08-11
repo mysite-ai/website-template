@@ -2,7 +2,7 @@
 --
 -- Wires the smoke-test tenant (`mysite-demo` / `demo` / `demo`) to a
 -- dedicated `MySite Test` promotion in attribution-autopilot so that
--- /promocja renders the full QR + phone flow end-to-end, driving real
+-- /rewards renders the full QR + phone flow end-to-end, driving real
 -- POST /api/users calls against `https://attribution.mysite.cx/api`.
 --
 -- The four UUIDs below live in a DIFFERENT Supabase project

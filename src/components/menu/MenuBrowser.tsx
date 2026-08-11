@@ -43,7 +43,7 @@ export default function MenuBrowser({ menu }: Props) {
   return (
     <div>
       {/* Sticky category tabs — pill-shaped, tabular-tighter, backdrop-blur */}
-      <div className="sticky top-0 z-20 -mx-5 sm:-mx-6 px-5 sm:px-6 py-2.5 bg-background/85 backdrop-blur-xl">
+      <div className="sticky top-14 z-20 -mx-5 sm:-mx-6 px-5 sm:px-6 py-2.5 bg-background/85 backdrop-blur-xl backdrop-saturate-150">
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
           {categories.map((cat) => (
             <button
@@ -51,10 +51,10 @@ export default function MenuBrowser({ menu }: Props) {
               type="button"
               onClick={() => scrollTo(cat.id)}
               className={cn(
-                "shrink-0 px-3.5 py-1.5 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors",
+                "shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors",
                 activeId === cat.id
-                  ? "bg-secondary text-secondary-foreground"
-                  : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted",
+                  ? "bg-foreground text-background"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
               {cat.name}
@@ -63,7 +63,7 @@ export default function MenuBrowser({ menu }: Props) {
         </div>
       </div>
 
-      <div className="mt-6 space-y-6">
+      <div className="mt-6 space-y-6 lg:mt-8 lg:space-y-8">
         {categories.map((cat) => (
           <CategorySection
             key={cat.id}
@@ -88,22 +88,24 @@ function CategorySection({ category, registerRef }: CategorySectionProps) {
     <section
       ref={registerRef}
       data-category-id={category.id}
-      className="scroll-mt-20"
+      className="scroll-mt-24"
       aria-labelledby={`menu-cat-${category.id}`}
     >
       <div className="mb-3 px-1">
         <h2
           id={`menu-cat-${category.id}`}
-          className="text-[18px] font-semibold tracking-tight"
+          className="text-[19px] font-semibold tracking-tight lg:text-[20px]"
         >
           {category.name}
         </h2>
         {category.description && (
-          <p className="mt-0.5 text-[13px] text-muted-foreground">{category.description}</p>
+          <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
+            {category.description}
+          </p>
         )}
       </div>
 
-      <Card className="p-0 gap-0">
+      <Card className="!p-0 gap-0">
         <ul className="divide-y divide-foreground/10">
           {category.items.map((item) => (
             <Item key={item.id} item={item} />
@@ -125,7 +127,7 @@ function Item({ item }: ItemProps) {
   }, [item.price]);
 
   return (
-    <li className="flex items-start gap-3 px-4 py-3.5">
+    <li className="flex items-start gap-3 px-4 py-4">
       {item.image_url && (
         <img
           src={item.image_url}
@@ -139,17 +141,17 @@ function Item({ item }: ItemProps) {
         <div className="flex items-baseline justify-between gap-3">
           <p className="text-[15px] font-semibold tracking-tight truncate">{item.name}</p>
           {priceLabel ? (
-            <span className="shrink-0 text-[14px] font-semibold tabular-nums text-foreground">
+            <span className="shrink-0 text-[14.5px] font-semibold tabular-nums text-foreground">
               {priceLabel}
             </span>
           ) : (
-            <span className="shrink-0 text-[11px] text-muted-foreground uppercase tracking-wide">
+            <span className="shrink-0 text-[11px] uppercase tracking-wide text-muted-foreground">
               Market
             </span>
           )}
         </div>
         {item.description && (
-          <p className="mt-0.5 text-[13px] text-muted-foreground leading-snug line-clamp-2">
+          <p className="mt-1 text-[13px] leading-snug text-muted-foreground line-clamp-2">
             {item.description}
           </p>
         )}

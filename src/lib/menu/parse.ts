@@ -51,8 +51,24 @@ export function parseMenu(raw: unknown): Menu | null {
   return result.data;
 }
 
-export function formatMoney(price: { amount: number; currency: string }, locale = "en-US"): string {
-  return new Intl.NumberFormat(locale, {
+/**
+ * Pick a sensible locale from a currency code so PLN, EUR, and USD each
+ * render in their own conventional format (thousands separator, currency
+ * position, decimal marker) without every caller passing a locale hint.
+ * Callers can still override by passing `locale` explicitly.
+ */
+const CURRENCY_LOCALE: Record<string, string> = {
+  PLN: "pl-PL",
+  EUR: "de-DE",
+  USD: "en-US",
+};
+
+export function formatMoney(
+  price: { amount: number; currency: string },
+  locale?: string,
+): string {
+  const resolvedLocale = locale ?? CURRENCY_LOCALE[price.currency] ?? "en-US";
+  return new Intl.NumberFormat(resolvedLocale, {
     style: "currency",
     currency: price.currency,
     maximumFractionDigits: 2,

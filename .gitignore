@@ -7,3 +7,13 @@ dist
 .env.*.local
 .DS_Store
 *.log
+
+# Scratch / working files that occasionally land in the repo root
+# when uploading assets to Supabase Storage — the source of truth
+# for tenant logos is Supabase Storage, not this repo.
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+# Keep public/ images (favicon.svg etc.) tracked
+!public/**

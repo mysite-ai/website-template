@@ -3,7 +3,7 @@
 -- Syncs the cached display strings (promotion_name_cached +
 -- reward_description_cached) with the renamed smoke-test attribution
 -- promotion so the pre-reveal PromoBanner CTA on the landing and the
--- /promocja hero both show the correct "White Bear Rewards" name.
+-- /rewards hero both show the correct "White Bear Rewards" name.
 --
 -- attribution-autopilot side (applied separately via MCP):
 --   * promotions.name → 'White Bear Rewards'

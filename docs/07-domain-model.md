@@ -165,13 +165,13 @@ The LRU cache has a 60s TTL (see `src/lib/tenant/resolve.ts`). A new hostname in
 Every custom domain (apex or subdomain, not `mysite.social`) requires **three sync'd inserts** to work end-to-end:
 
 1. **`template_domains` in `website-template` Supabase** — row that maps hostname → location_id. (Middleware routes traffic based on this.)
-2. **`location_origins` in `attribution-autopilot` Supabase** — row that grants CORS + Origin allow for the loyalty API. (Otherwise `/promocja` breaks with a CORS error.)
+2. **`location_origins` in `attribution-autopilot` Supabase** — row that grants CORS + Origin allow for the loyalty API. (Otherwise `/rewards` breaks with a CORS error.)
 3. **Vercel domain attachment + client DNS** — actual routing at the edge.
 
 If any of the three is missing, the site is broken in a specific way:
 
 - **1 missing** → 404 from the middleware
-- **2 missing** → landing loads, `/promocja` reveals the QR but the phone-save POST fails with a CORS error (visible in devtools)
+- **2 missing** → landing loads, `/rewards` reveals the QR but the phone-save POST fails with a CORS error (visible in devtools)
 - **3 missing** → DNS resolution error, browser can't reach the site at all
 
 See `docs/02-adding-a-client.md` for the exact SQL and Vercel steps.
@@ -184,7 +184,7 @@ See `docs/02-adding-a-client.md` for the exact SQL and Vercel steps.
 | 404 on `mysite.social` (apex) | This is correct behavior — apex is unused | (n/a) |
 | 404 on `<brand>.mysite.social` bare | Bare brand roots are 404 by design | Use `<location>.<brand>.mysite.social` instead |
 | Cert error on `*.*.mysite.social` | P2 not verified — Vercel doesn't have the nested wildcard cert | Collapse to flat `<location>-<brand>.mysite.social` |
-| CORS error on `/promocja` after adding a domain | `location_origins` row missing in attribution-autopilot | Insert the row; wait ~60s for `getAllOriginsCached()` to refresh |
+| CORS error on `/rewards` after adding a domain | `location_origins` row missing in attribution-autopilot | Insert the row; wait ~60s for `getAllOriginsCached()` to refresh |
 | Site loads on `karat.pl` but not `www.karat.pl` | Missing `www.karat.pl` row in `template_domains` (no auto www stripping) | Insert a separate row for the www variant, or use Vercel's built-in apex↔www redirect |
 | Colors don't match the brand override | Old serverless instance holding cached tenant | Wait 60s TTL, or verify `template_brands.theme` row has the JSONB set correctly |
 

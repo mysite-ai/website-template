@@ -6,13 +6,18 @@
  *     ring-foreground/10, no visible border). Do NOT invent new card
  *     treatments in this file.
  *   - Section rhythm is one value: `mt-6` (24px) between siblings
- *     inside a section-well. No mt-3 / mt-4 / mt-10 anywhere.
+ *     inside a section-well. On desktop (`lg:mt-8`) breathes to 32px.
  *   - Icon buttons and interactive tiles inherit from shadcn Button
  *     primitives; this file only adds two small conveniences.
  */
 
 @layer components {
-  /* Content well — mobile-first single column. */
+  /* Content well — mobile-first single column that gently widens on
+   * larger viewports. The three tiers below aren't a full responsive
+   * redesign; they let the same one-column composition feel intentional
+   * on a laptop rather than stranded in a white ocean. Multi-column
+   * layouts live inside individual sections via `md:` / `lg:` classes.
+   */
   .section-well {
     width: 100%;
     max-width: 30rem; /* 480px */
@@ -21,13 +26,20 @@
   }
   @media (min-width: 768px) {
     .section-well {
-      max-width: 36rem; /* 576px */
+      max-width: 40rem; /* 640px */
       padding-inline: 1.5rem;
     }
   }
+  @media (min-width: 1024px) {
+    .section-well {
+      max-width: 56rem; /* 896px */
+      padding-inline: 2rem;
+    }
+  }
 
-  /* Section label — the tiny caption that sits above every section
-   * body. Small, wide-tracked, muted. */
+  /* Section label — the tiny caption that sits above compact info
+   * blocks (Hours, Delivery). For narrative sections (About, Gallery,
+   * MenuPreview) use a real <h2> `section-heading` instead. */
   .section-label {
     font-size: 0.6875rem; /* 11px */
     font-weight: 600;
@@ -35,6 +47,21 @@
     text-transform: uppercase;
     color: var(--muted-foreground);
     line-height: 1;
+  }
+
+  /* Section heading — used above narrative sections (About, Gallery,
+   * MenuPreview) so the homepage isn't a wall of tiny gray captions. */
+  .section-heading {
+    font-size: 1.125rem; /* 18px */
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--foreground);
+  }
+  @media (min-width: 1024px) {
+    .section-heading {
+      font-size: 1.25rem; /* 20px */
+    }
   }
 
   /* Compact circular icon button — used for socials, share, etc.
@@ -81,5 +108,34 @@
     text-transform: uppercase;
     line-height: 1;
     opacity: 0.7;
+  }
+
+  /* Soft entrance animation for above-the-fold hero content. Runs
+   * once at page load; respects prefers-reduced-motion (see below). */
+  .fade-rise {
+    animation: fade-rise 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .fade-rise-delay-1 { animation-delay: 80ms; }
+  .fade-rise-delay-2 { animation-delay: 160ms; }
+  .fade-rise-delay-3 { animation-delay: 240ms; }
+
+  @keyframes fade-rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fade-rise,
+    .fade-rise-delay-1,
+    .fade-rise-delay-2,
+    .fade-rise-delay-3 {
+      animation: none;
+    }
   }
 }

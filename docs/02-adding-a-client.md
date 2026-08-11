@@ -5,7 +5,7 @@ Two patterns, both zero-code. Site is live in <5 minutes.
 Before you start, verify:
 
 1. **`mysite.social` is set up in Vercel** with wildcard entries `*.mysite.social` and `*.*.mysite.social` — see `docs/07-domain-model.md` for the full setup and the TLS caveat for the nested wildcard.
-2. **CORS 60-second cache lag** — every hostname you add must ALSO be inserted into `attribution-autopilot`'s `location_origins`. `LocationsService.getAllOriginsCached()` caches the origin list for 60 seconds, so wait ~60s after the INSERT before smoke-testing `/promocja` or CORS will fail with a confusing error.
+2. **CORS 60-second cache lag** — every hostname you add must ALSO be inserted into `attribution-autopilot`'s `location_origins`. `LocationsService.getAllOriginsCached()` caches the origin list for 60 seconds, so wait ~60s after the INSERT before smoke-testing `/rewards` or CORS will fail with a confusing error.
 
 > Need to *change* things on an existing tenant (colors, menu, images, promo)? That's `docs/08-managing-tenants.md`. This doc is only about **onboarding a new tenant**.
 
@@ -88,7 +88,7 @@ insert into location_origins (location_id, origin) values
 
 **Do not** touch `DEFAULT_ALLOWED_ORIGIN_PATTERNS` in `src/common/origin-allowlist.ts` — that path requires a backend redeploy and defeats zero-code onboarding.
 
-⚠️ Wait ~60 seconds before smoke-testing `/promocja` (CORS cache lag).
+⚠️ Wait ~60 seconds before smoke-testing `/rewards` (CORS cache lag).
 
 ### Step 3 — DNS + Vercel
 

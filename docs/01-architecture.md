@@ -54,11 +54,11 @@ If a future feature needs client-side Supabase (unlikely; almost every restauran
 
 Astro pages are static-shaped HTML by default. Interactivity is opt-in per component via `client:*` directives:
 
-- **`client:load`** — hydrates immediately. Used for `PromoFlow` because it's the primary content of `/promocja`.
+- **`client:load`** — hydrates immediately. Used for `PromoFlow` because it's the primary content of `/rewards`.
 - **`client:visible`** — hydrates when scrolled into view. Used for `MenuBrowser` on `/menu`.
 - **`client:idle`** — hydrates on `requestIdleCallback`. Used for `MetaPixel` and `Umami` so they never block first paint.
 
-This is a Lighthouse-mobile-95+ setup out of the box: three routes, one interactive island per route (except `/promocja` which needs the QR flow), zero JavaScript on the marketing landing above the fold.
+This is a Lighthouse-mobile-95+ setup out of the box: three routes, one interactive island per route (except `/rewards` which needs the QR flow), zero JavaScript on the marketing landing above the fold.
 
 ## What lives where
 

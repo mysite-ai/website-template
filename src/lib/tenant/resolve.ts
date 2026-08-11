@@ -149,6 +149,9 @@ interface LocationJoinRow {
   meta_pixel_ids: string[] | null;
   gallery: unknown;
   menu: unknown;
+  google_rating: number | string | null;
+  google_reviews_count: number | null;
+  google_place_url: string | null;
   brand: BrandJoinRow | null;
 }
 
@@ -158,10 +161,13 @@ interface BrandJoinRow {
   slug: string;
   name: string;
   logo_url: string | null;
+  logo_url_nav: string | null;
   favicon_url: string | null;
   theme: unknown;
   tagline: string | null;
   about_md: string | null;
+  logo_header_height: number | null;
+  logo_hero_max_height: number | null;
   organization: TenantOrganization | null;
 }
 
@@ -190,8 +196,10 @@ export async function resolveTenant(rawHost: string): Promise<TenantContext | nu
           attribution_org_id, attribution_location_id,
           promotion_name_cached, reward_description_cached,
           umami_website_id, meta_pixel_ids, gallery, menu,
+          google_rating, google_reviews_count, google_place_url,
           brand:template_brands!inner (
-            id, org_id, slug, name, logo_url, favicon_url, theme, tagline, about_md,
+            id, org_id, slug, name, logo_url, logo_url_nav, favicon_url, theme, tagline, about_md,
+            logo_header_height, logo_hero_max_height,
             organization:template_organizations!inner (
               id, slug, name, default_locale
             )
@@ -221,10 +229,13 @@ export async function resolveTenant(rawHost: string): Promise<TenantContext | nu
     slug: data.location.brand.slug,
     name: data.location.brand.name,
     logo_url: data.location.brand.logo_url,
+    logo_url_nav: data.location.brand.logo_url_nav,
     favicon_url: data.location.brand.favicon_url,
     theme: coerceTheme(data.location.brand.theme),
     tagline: data.location.brand.tagline,
     about_md: data.location.brand.about_md,
+    logo_header_height: data.location.brand.logo_header_height,
+    logo_hero_max_height: data.location.brand.logo_hero_max_height,
   };
   const location: TenantLocation = {
     id: data.location.id,
@@ -257,6 +268,14 @@ export async function resolveTenant(rawHost: string): Promise<TenantContext | nu
     meta_pixel_ids: data.location.meta_pixel_ids ?? [],
     gallery: coerceGallery(data.location.gallery),
     menu: parseMenu(data.location.menu),
+    google_rating:
+      data.location.google_rating === null || data.location.google_rating === undefined
+        ? null
+        : typeof data.location.google_rating === "number"
+          ? data.location.google_rating
+          : Number(data.location.google_rating),
+    google_reviews_count: data.location.google_reviews_count,
+    google_place_url: data.location.google_place_url,
   };
   const domain: TenantDomain = {
     hostname: data.hostname,

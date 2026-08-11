@@ -17,11 +17,19 @@ export interface TenantBrand {
   org_id: string;
   slug: string;
   name: string;
+  /** The canonical "hero" logo — full wordmark, rendered above the H1. */
   logo_url: string | null;
+  /** Optional compact/mark variant for the sticky Header. Falls back to logo_url when null. */
+  logo_url_nav: string | null;
   favicon_url: string | null;
   theme: TenantBrandTheme;
   tagline: string | null;
   about_md: string | null;
+
+  /** Per-tenant override for header logo height (px). Null = component default. */
+  logo_header_height: number | null;
+  /** Per-tenant override for hero logo max-height (px). Null = component default. */
+  logo_hero_max_height: number | null;
 }
 
 export interface DeliveryLink {
@@ -75,6 +83,10 @@ export interface TenantLocation {
 
   gallery: GalleryImage[];
   menu: Menu | null;
+
+  google_rating: number | null;
+  google_reviews_count: number | null;
+  google_place_url: string | null;
 }
 
 export type DomainKind = "mysite_single" | "mysite_multi" | "custom";

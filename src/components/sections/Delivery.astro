@@ -9,28 +9,89 @@ interface Props {
 
 const { tenant } = Astro.props;
 const delivery = tenant.location.delivery;
+
+/*
+ * Provider → local logo mapping. Logos are pre-fetched from logo.dev
+ * (PNG @ 128px retina) and shipped in /public/logos/delivery so we
+ * don't pay the logo.dev image quota per pageview or leak the token
+ * client-side.
+ *
+ * When you add a new provider to a tenant's delivery list:
+ *   1. Add its slug → domain to scripts/download-delivery-logos.sh
+ *      (or use logo.dev directly): the file should land as
+ *      public/logos/delivery/<slug>.png
+ *   2. Add the "<display name>" → "<slug>" line to LOGO_SLUG below.
+ * Unknown providers gracefully fall back to a colored monogram tile.
+ */
+const LOGO_SLUG: Record<string, string> = {
+  wolt: "wolt",
+  glovo: "glovo",
+  "pyszne.pl": "pyszne",
+  pyszne: "pyszne",
+  "uber eats": "ubereats",
+  ubereats: "ubereats",
+  doordash: "doordash",
+  grubhub: "grubhub",
+  bolt: "bolt",
+};
+
+const FALLBACK_STYLE: Record<string, { bg: string; fg: string }> = {
+  default: "bg-muted text-foreground/80" as never,
+};
+
+function resolveLogo(name: string): string | null {
+  const key = name.trim().toLowerCase();
+  const slug = LOGO_SLUG[key];
+  return slug ? `/logos/delivery/${slug}.png` : null;
+}
 ---
 
 {delivery.length > 0 && (
-  <section class="section-well mt-6">
+  <section class="section-well mt-6 lg:mt-8">
     <p class="section-label mb-3 px-1">Delivery</p>
-    <Card className="p-0 gap-0">
+    <Card className="!p-0 gap-0">
       <ul class="divide-y divide-foreground/10">
-        {delivery.map((link) => (
-          <li>
-            <a
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="flex items-center justify-between px-4 py-3.5 text-[14px] font-medium hover:bg-muted/40 transition-colors"
-              data-umami-event="click-delivery-provider"
-              data-umami-event-target={link.name}
-            >
-              <span>{link.name}</span>
-              <ArrowUpRight size={15} strokeWidth={1.75} className="text-muted-foreground" aria-hidden="true" />
-            </a>
-          </li>
-        ))}
+        {delivery.map((link) => {
+          const logo = resolveLogo(link.name);
+          return (
+            <li>
+              <a
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="group flex items-center gap-3 px-4 py-3.5 text-[14px] font-medium transition-colors hover:bg-muted/40"
+                data-umami-event="click-delivery-provider"
+                data-umami-event-target={link.name}
+              >
+                {logo ? (
+                  <img
+                    src={logo}
+                    alt=""
+                    width={32}
+                    height={32}
+                    loading="lazy"
+                    decoding="async"
+                    class="h-8 w-8 shrink-0 rounded-lg object-contain ring-1 ring-inset ring-black/5"
+                  />
+                ) : (
+                  <span
+                    class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-[13px] font-bold text-foreground/80 ring-1 ring-inset ring-black/5"
+                    aria-hidden="true"
+                  >
+                    {link.name.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <span class="flex-1 truncate">{link.name}</span>
+                <ArrowUpRight
+                  size={15}
+                  strokeWidth={1.75}
+                  className="text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                  aria-hidden="true"
+                />
+              </a>
+            </li>
+          );
+        })}
       </ul>
     </Card>
   </section>

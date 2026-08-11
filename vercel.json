@@ -5,5 +5,12 @@
       "source": "/stats/:match*",
       "destination": "https://umami-mysiteai.vercel.app/:match*"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/promocja",
+      "destination": "/rewards",
+      "permanent": true
+    }
   ]
 }

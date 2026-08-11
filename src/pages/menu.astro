@@ -19,19 +19,23 @@ Astro.response.headers.set(
 ---
 
 <BaseLayout tenant={tenant} seo={seo} currentPath="/menu">
-  <section class="section-well pt-8 pb-2">
-    <p class="section-label">{tenant.brand.name}</p>
-    <h1 class="mt-1.5 text-[28px] font-semibold tracking-tight leading-tight">Menu</h1>
+  <section class="section-well pt-8 pb-2 lg:pt-12">
+    <p class="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+      {tenant.brand.name}
+    </p>
+    <h1 class="mt-2 text-[30px] font-semibold leading-tight tracking-tight sm:text-[34px] lg:text-[38px]">
+      Menu
+    </h1>
   </section>
 
   {menu && menu.categories.length > 0 ? (
-    <section class="section-well mt-6 pb-16">
+    <section class="section-well mt-6 pb-16 lg:mt-8 lg:pb-20">
       <MenuBrowser client:visible menu={menu} />
     </section>
   ) : (
     <section class="section-well mt-6 pb-16">
       <Card>
-        <CardContent className="py-8 text-center">
+        <CardContent className="py-10 text-center">
           <p class="text-sm text-muted-foreground">Menu coming soon — check back later.</p>
         </CardContent>
       </Card>

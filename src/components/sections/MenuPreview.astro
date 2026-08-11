@@ -15,15 +15,17 @@ const showSection = preview.length > 0;
 ---
 
 {showSection && (
-  <section class="section-well mt-6">
+  <section class="section-well mt-6 lg:mt-8">
     <div class="mb-3 flex items-baseline justify-between px-1">
-      <p class="section-label">Menu</p>
+      <h2 class="section-heading">Menu</h2>
       {totalItems > 0 && (
-        <span class="text-[11px] text-muted-foreground tabular-nums">{totalItems} items</span>
+        <span class="text-[11.5px] text-muted-foreground tabular-nums">
+          {totalItems} items
+        </span>
       )}
     </div>
 
-    <Card className="p-0 gap-0">
+    <Card className="!p-0 gap-0">
       <ul class="divide-y divide-foreground/10">
         {preview.map((cat) => {
           const itemCount = cat.items.length;
@@ -33,13 +35,13 @@ const showSection = preview.length > 0;
           return (
             <li class="px-4 py-3.5">
               <div class="flex items-baseline justify-between gap-3">
-                <p class="text-[15px] font-semibold tracking-tight truncate">{cat.name}</p>
-                <span class="shrink-0 text-[11px] text-muted-foreground tabular-nums">
+                <p class="truncate text-[15px] font-semibold tracking-tight">{cat.name}</p>
+                <span class="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10.5px] font-medium tabular-nums text-muted-foreground">
                   {itemCount}
                 </span>
               </div>
               {line && (
-                <p class="mt-0.5 text-[13px] text-muted-foreground line-clamp-1">
+                <p class="mt-0.5 line-clamp-1 text-[13px] text-muted-foreground">
                   {line}{itemCount > 2 ? ` · +${itemCount - 2} more` : ""}
                 </p>
               )}
@@ -49,12 +51,17 @@ const showSection = preview.length > 0;
       </ul>
       <a
         href="/menu"
-        class="flex items-center justify-between border-t border-foreground/10 bg-muted/40 px-4 py-3.5 text-[14px] font-medium text-foreground hover:bg-muted transition-colors"
+        class="group flex items-center justify-between border-t border-foreground/10 bg-muted/40 px-4 py-3.5 text-[14px] font-medium text-foreground transition-colors hover:bg-muted"
         data-umami-event="click-view-menu"
         data-umami-event-target="section-menu-preview"
       >
         <span>View full menu</span>
-        <ArrowRight size={15} strokeWidth={1.75} aria-hidden="true" />
+        <ArrowRight
+          size={15}
+          strokeWidth={1.75}
+          aria-hidden="true"
+          className="transition-transform group-hover:translate-x-0.5"
+        />
       </a>
     </Card>
   </section>

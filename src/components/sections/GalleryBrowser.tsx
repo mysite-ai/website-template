@@ -93,10 +93,29 @@ export default function GalleryBrowser({ images }: Props) {
 
   const selected = selectedIndex !== null ? visible[selectedIndex] : null;
 
-  const gridClass =
-    visible.length === 4
-      ? "grid grid-cols-2 gap-2 sm:gap-2.5"
-      : "grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5";
+  // Grid choice by count so the last row always fills:
+  //   8  → 2 cols mobile (4 rows), 4 cols lg+ (2 rows)
+  //   6  → 2 cols mobile (3 rows), 3 cols sm+ (2 rows)
+  //   4  → 2 cols mobile (2 rows), 4 cols lg+ (1 row)
+  //   3  → 3 cols on every breakpoint (1×3)
+  //   2  → 2 cols on every breakpoint
+  //   default (5, 7, 9…) → 2 cols mobile, 3 cols sm+
+  const gridClass = (() => {
+    switch (visible.length) {
+      case 2:
+        return "grid grid-cols-2 gap-2 sm:gap-2.5";
+      case 3:
+        return "grid grid-cols-3 gap-2 sm:gap-2.5";
+      case 4:
+        return "grid grid-cols-2 gap-2 sm:gap-2.5 lg:grid-cols-4 lg:gap-3";
+      case 6:
+        return "grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 lg:gap-3";
+      case 8:
+        return "grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 lg:grid-cols-4 lg:gap-3";
+      default:
+        return "grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 lg:gap-3";
+    }
+  })();
 
   return (
     <>

@@ -7,7 +7,7 @@ The template talks to `attribution-autopilot` (`https://attribution.mysite.cx/ap
 Ported VERBATIM from wbc-v2's `useQrTracker` — same endpoints, same payload shape, same phone-append + duplicate-recovery flow.
 
 ```
-Visitor lands on /promocja
+Visitor lands on /rewards
         │
         ▼
   useAttribution(location)  ── reads _fbc/_fbp/_ga/utms/etc. from cookies + localStorage
@@ -115,7 +115,7 @@ values ('<template_locations.attribution_location_id>', 'https://<hostname>');
 
 Do NOT edit `DEFAULT_ALLOWED_ORIGIN_PATTERNS` in `src/common/origin-allowlist.ts` — that path requires a backend redeploy and is not compatible with zero-code onboarding.
 
-**60-second cache lag** — `LocationsService.getAllOriginsCached()` caches the origin list for 60 seconds. A newly onboarded hostname will fail CORS for up to ~60 seconds after the INSERT. Wait, then smoke-test `/promocja`.
+**60-second cache lag** — `LocationsService.getAllOriginsCached()` caches the origin list for 60 seconds. A newly onboarded hostname will fail CORS for up to ~60 seconds after the INSERT. Wait, then smoke-test `/rewards`.
 
 ## Google Ads click IDs
 

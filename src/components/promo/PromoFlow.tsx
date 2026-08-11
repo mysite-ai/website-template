@@ -11,6 +11,7 @@ import {
 } from "@/lib/attribution/metaPixel";
 import { shareQrImage } from "@/lib/promo/shareQrImage";
 import { formatPhone } from "@/lib/utils";
+import PhoneField from "./PhoneField";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +21,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 
@@ -31,6 +31,8 @@ export interface PromoFlowProps {
   addressLabel: string;
   domain: string;
   phone: string | null;
+  /** ISO country code from `template_locations.country`. Sets the default in the phone picker. */
+  defaultCountry: string | null;
   promotionName: string | null;
   rewardDescription: string | null;
   attribution: AttributionLocation | null;
@@ -53,6 +55,7 @@ export default function PromoFlow(props: PromoFlowProps) {
     addressLabel,
     domain,
     phone,
+    defaultCountry,
     promotionName,
     rewardDescription,
     attribution,
@@ -70,7 +73,6 @@ export default function PromoFlow(props: PromoFlowProps) {
     savePhone,
   } = useAttribution(attribution);
 
-  const [phoneInput, setPhoneInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState<FlowStep>(() =>
     phoneSaved ? "done" : user ? "revealed" : "teaser",
@@ -91,19 +93,10 @@ export default function PromoFlow(props: PromoFlowProps) {
     }
   };
 
-  const handlePhoneInput = (val: string) => {
-    const digits = val.replace(/\D/g, "").slice(0, 9);
-    setPhoneInput(digits);
-  };
-
-  const isPhoneValid = phoneInput.replace(/\D/g, "").length === 9;
-
-  const handleSavePhone = async () => {
-    const digits = phoneInput.replace(/\D/g, "");
-    if (digits.length !== 9) return;
+  const handleSavePhone = async (e164: string) => {
     const leadEventId = getMetaEventId("Lead");
     setSaving(true);
-    const ok = await savePhone(`+48${digits}`, { leadEventId });
+    const ok = await savePhone(e164, { leadEventId });
     setSaving(false);
     if (ok) {
       trackMetaEventOnce(`mysite_meta_lead_submitted_${user?.id ?? "unknown"}`, () =>
@@ -129,41 +122,43 @@ export default function PromoFlow(props: PromoFlowProps) {
     });
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="section-well py-6 sm:py-8">
-        {/* Header row — logo + Back link on same line */}
+    <div
+      className="min-h-screen bg-background"
+      style={{
+        background:
+          "radial-gradient(60% 55% at 50% 0%, color-mix(in oklab, var(--primary) 7%, transparent) 0%, transparent 70%), linear-gradient(180deg, color-mix(in oklab, var(--primary) 2%, var(--background)) 0%, var(--background) 60%)",
+      }}
+    >
+      <div className="mx-auto w-full max-w-[30rem] px-5 py-6 sm:py-8 lg:max-w-[34rem] lg:py-12">
+        {/* Header row — Back link only. Brand logo intentionally omitted;
+         * the eyebrow below already carries brand identity and a
+         * 32×32 wordmark crop reads as broken. If a tenant ships a
+         * square mark in the future, expose it as brand.mark_url and
+         * render here at h-8 w-8 rounded. */}
         <div className="flex items-center justify-between">
           <a
             href="/"
-            className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex h-8 items-center gap-1.5 rounded-full pl-1 pr-3 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             data-umami-event="click-back"
             data-umami-event-target="promo-page"
           >
             <ArrowLeft size={16} strokeWidth={2} aria-hidden="true" />
             Back
           </a>
-          {brandLogoUrl ? (
-            <img
-              src={brandLogoUrl}
-              alt={brandName}
-              className="w-8 h-8 object-contain opacity-90"
-            />
-          ) : (
-            <span className="text-[12px] font-semibold tracking-tight text-muted-foreground">
-              {brandName}
-            </span>
-          )}
+          <span className="truncate text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            {brandName}
+          </span>
         </div>
 
         {/* Title block */}
-        <header className="mt-10 text-center">
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        <header className="mt-10 text-center lg:mt-14">
+          <p className="fade-rise text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
             {promotionLabel}
           </p>
-          <h1 className="mt-2 text-[28px] sm:text-[32px] font-semibold tracking-tight leading-tight">
+          <h1 className="fade-rise fade-rise-delay-1 mt-2 text-[34px] font-semibold leading-[1.05] tracking-tight sm:text-[40px] lg:text-[48px]">
             {rewardLabel}
           </h1>
-          <p className="mt-3 text-[14px] text-muted-foreground leading-relaxed max-w-[24rem] mx-auto">
+          <p className="fade-rise fade-rise-delay-2 mx-auto mt-4 max-w-[26rem] text-[14.5px] leading-relaxed text-muted-foreground lg:text-[15.5px]">
             {step === "teaser"
               ? "Reveal your personal QR code below. Show it at the counter to claim your reward."
               : "Show this QR code at the counter to claim your reward."}
@@ -172,13 +167,13 @@ export default function PromoFlow(props: PromoFlowProps) {
 
         {/* STEP 1 — TEASER */}
         {step === "teaser" && (
-          <Card className="mt-8">
-            <CardContent className="pt-2 pb-6 flex flex-col items-center">
+          <Card className="mt-8 lg:mt-10">
+            <CardContent className="flex flex-col items-center pt-2 pb-6">
               <button
                 type="button"
                 onClick={handleReveal}
                 disabled={registering}
-                className="relative mb-5 aspect-square w-56 rounded-2xl bg-muted/60 grid place-items-center group hover:bg-muted/80 transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-progress"
+                className="group relative mb-5 grid aspect-square w-60 place-items-center rounded-2xl bg-muted/60 transition-colors hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-progress lg:w-64"
                 aria-label="Reveal your code"
               >
                 {/* Blurred QR-ish pattern preview */}
@@ -186,7 +181,7 @@ export default function PromoFlow(props: PromoFlowProps) {
                   aria-hidden="true"
                   className="absolute inset-4 rounded-xl bg-[repeating-conic-gradient(var(--foreground)_0deg_10deg,transparent_10deg_20deg)] opacity-[0.06] blur-md"
                 />
-                <span className="relative inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground text-[13px] font-semibold shadow-md group-hover:scale-105 transition-transform">
+                <span className="relative inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-[13.5px] font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-transform group-hover:scale-105">
                   {registering ? (
                     "Generating…"
                   ) : (
@@ -197,7 +192,9 @@ export default function PromoFlow(props: PromoFlowProps) {
                   )}
                 </span>
               </button>
-              <p className="text-[12px] text-muted-foreground">Tap to unlock your personal code</p>
+              <p className="text-[12.5px] text-muted-foreground">
+                One-time personal code · takes a second
+              </p>
             </CardContent>
             {error && <ErrorRow message={error} onDismiss={clearError} />}
           </Card>
@@ -213,11 +210,11 @@ export default function PromoFlow(props: PromoFlowProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col items-center">
-                <div className="rounded-2xl bg-white p-4 ring-1 ring-foreground/10">
+                <div className="rounded-2xl bg-white p-4 ring-1 ring-foreground/10 shadow-sm">
                   <QRCodeCanvas
                     id="qr-revealed"
                     value={qrValue(user.first_reward_code ?? user.full_code, user.id)}
-                    size={168}
+                    size={196}
                     level="M"
                     fgColor="#000000"
                     bgColor="#ffffff"
@@ -250,10 +247,8 @@ export default function PromoFlow(props: PromoFlowProps) {
               </CardHeader>
               <CardContent>
                 <PhoneField
-                  value={phoneInput}
-                  onChange={handlePhoneInput}
+                  defaultCountry={defaultCountry}
                   onSubmit={handleSavePhone}
-                  isValid={isPhoneValid}
                   saving={saving}
                 />
                 {error && (
@@ -281,7 +276,9 @@ export default function PromoFlow(props: PromoFlowProps) {
                   </div>
                   <div className="min-w-0">
                     <p className="text-[13px] font-semibold tabular-nums">
-                      {typeof localStorage !== "undefined" ? localStorage.getItem("qr_user_phone") ?? "—" : "—"}
+                      {typeof localStorage !== "undefined"
+                        ? formatPhone(localStorage.getItem("qr_user_phone")) || "—"
+                        : "—"}
                     </p>
                     <p className="text-[11px] text-muted-foreground">Your number · code linked</p>
                   </div>
@@ -384,47 +381,6 @@ export default function PromoFlow(props: PromoFlowProps) {
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-interface PhoneFieldProps {
-  value: string;
-  onChange: (v: string) => void;
-  onSubmit: () => void;
-  isValid: boolean;
-  saving: boolean;
-}
-
-function PhoneField({ value, onChange, onSubmit, isValid, saving }: PhoneFieldProps) {
-  return (
-    <div className="space-y-2.5">
-      <div className="flex h-10 rounded-lg border border-input bg-transparent overflow-hidden focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 transition-colors">
-        <div className="flex items-center px-3 border-r border-input text-[13px] font-medium text-muted-foreground shrink-0 select-none tabular-nums">
-          🇵🇱 +48
-        </div>
-        <Input
-          type="tel"
-          inputMode="numeric"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="500 000 000"
-          maxLength={11}
-          className="h-full border-0 rounded-none focus-visible:ring-0 focus-visible:border-0 text-base font-medium tabular-nums"
-          aria-label="Phone number"
-        />
-      </div>
-      <Button
-        type="button"
-        onClick={onSubmit}
-        disabled={saving || !isValid}
-        size="lg"
-        className="w-full h-10"
-        data-umami-event="click-submit-phone"
-        data-umami-event-target="promo-phone-form"
-      >
-        {saving ? "Saving…" : "Save number"}
-      </Button>
     </div>
   );
 }

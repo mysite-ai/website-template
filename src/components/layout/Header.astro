@@ -1,5 +1,7 @@
 ---
 import type { TenantContext } from "@/lib/tenant/types";
+import { Phone } from "lucide-react";
+import { formatPhone } from "@/lib/utils";
 
 interface Props {
   tenant: TenantContext;
@@ -9,46 +11,145 @@ interface Props {
 const { tenant, currentPath } = Astro.props;
 const { brand, location } = tenant;
 const displayName = brand.slug === location.slug ? brand.name : `${brand.name} · ${location.name}`;
+const phoneHref = location.phone ? `tel:${location.phone.replace(/\s+/g, "")}` : null;
+const phoneLabel = location.phone ? formatPhone(location.phone) : null;
+
+// Prefer the compact nav-mark when the brand ships one, otherwise the
+// canonical hero logo. Rare: a brand with only a wide wordmark just
+// re-uses it here (larger `logo_header_height` compensates).
+const navLogoUrl = brand.logo_url_nav ?? brand.logo_url;
+
+/*
+ * Header sizing.
+ *
+ * Assumes tenant logos are tight-cropped (no transparent padding
+ * inside the PNG). With that assumption, one standard size fits
+ * every tenant well — no per-tenant overrides needed by default.
+ *
+ * The `logo_header_height` column is an escape hatch: rarely, a
+ * brand's mark is so extremely wide or extremely tall that the
+ * standard size looks odd even with a good crop. Then, and only
+ * then, an operator sets a value in Supabase to fine-tune this
+ * one tenant. Every other tenant leaves it NULL and inherits the
+ * standard.
+ *
+ * Standard (component defaults, used when null):
+ *   - Desktop: 56 px logo height
+ *   - Mobile:  48 px (auto-scaled 85%)
+ *
+ * The header row height auto-fits: logo height + 32 desktop / +24
+ * mobile of vertical breathing room. Minimums keep the nav clickable
+ * on tenants with very small logos.
+ */
+const logoHeightDesktop = brand.logo_header_height ?? 56;
+const logoHeightMobile = Math.round(logoHeightDesktop * 0.85);
+const headerHeightDesktop = Math.max(72, logoHeightDesktop + 32);
+const headerHeightMobile = Math.max(64, logoHeightMobile + 24);
 
 const links: Array<{ href: string; label: string }> = [
   { href: "/", label: "Home" },
   { href: "/menu", label: "Menu" },
-  { href: "/promocja", label: "Rewards" },
+  { href: "/rewards", label: "Rewards" },
 ];
 ---
 
-<header class="sticky top-0 z-30 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-  <div class="section-well flex h-14 items-center justify-between">
-    <a href="/" class="flex items-center gap-2.5" aria-label={displayName}>
-      {brand.logo_url ? (
-        <img src={brand.logo_url} alt="" class="h-7 w-7 object-contain" loading="eager" />
+<header class="sticky top-0 z-30 bg-background/80 backdrop-blur-xl backdrop-saturate-150">
+  <div
+    class="section-well flex items-center gap-4"
+    style={`height:${headerHeightMobile}px`}
+    data-header
+  >
+    <a
+      href="/"
+      class="group flex min-w-0 items-center gap-2.5 rounded-full transition-opacity hover:opacity-80"
+      aria-label={displayName}
+    >
+      {navLogoUrl ? (
+        /*
+         * Wordmark-friendly sizing: fixed height, natural width. Height
+         * comes from the tenant brand (logo_header_height in px, DB) —
+         * see components.css for the mobile-scaling variable. max-width
+         * caps extreme wordmarks so nav still fits. displayName is
+         * hidden because wordmark logos already include the brand name.
+         *
+         * Source: `brand.logo_url_nav` if set, otherwise `brand.logo_url`.
+         * This lets brands ship a distinct compact mark for the nav.
+         */
+        <img
+          src={navLogoUrl}
+          alt={displayName}
+          class="header-logo w-auto max-w-[220px] object-contain lg:max-w-[280px]"
+          style={`height:${logoHeightMobile}px;--logo-h-desktop:${logoHeightDesktop}px`}
+          loading="eager"
+          decoding="async"
+          fetchpriority="high"
+        />
       ) : (
-        <div class="h-7 w-7 rounded-lg bg-primary text-primary-foreground grid place-items-center text-[11px] font-semibold">
-          {displayName.charAt(0)}
-        </div>
+        <>
+          <div
+            class="grid shrink-0 place-items-center rounded-xl bg-muted font-semibold text-foreground"
+            style={`height:${logoHeightMobile}px;width:${logoHeightMobile}px;font-size:${Math.round(logoHeightMobile * 0.4)}px`}
+          >
+            {displayName.charAt(0)}
+          </div>
+          <span class="hidden truncate text-[13.5px] font-semibold tracking-tight sm:inline lg:text-[15px]">
+            {displayName}
+          </span>
+        </>
       )}
-      <span class="text-[13px] font-semibold tracking-tight">{displayName}</span>
     </a>
 
-    <nav aria-label="Main navigation">
+    <nav aria-label="Main navigation" class="ml-auto">
       <ul class="flex items-center gap-0.5">
-        {links.map((link) => (
-          <li>
-            <a
-              href={link.href}
-              class:list={[
-                "px-3 py-1.5 text-[12px] font-medium rounded-full transition-colors",
-                currentPath === link.href
-                  ? "bg-secondary text-secondary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted",
-              ]}
-              aria-current={currentPath === link.href ? "page" : undefined}
-            >
-              {link.label}
-            </a>
-          </li>
-        ))}
+        {links.map((link) => {
+          const active = currentPath === link.href;
+          return (
+            <li>
+              <a
+                href={link.href}
+                class:list={[
+                  "inline-flex h-8 items-center rounded-full px-3 text-[12.5px] font-medium tracking-tight transition-colors lg:h-9 lg:px-3.5 lg:text-[13px]",
+                  active
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                ]}
+                aria-current={active ? "page" : undefined}
+              >
+                {link.label}
+              </a>
+            </li>
+          );
+        })}
       </ul>
     </nav>
+
+    {phoneHref && (
+      <a
+        href={phoneHref}
+        class="ml-1 inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-2.5 text-[12.5px] font-medium text-primary-foreground transition-opacity hover:opacity-90 lg:h-9 lg:px-3.5 lg:text-[13px]"
+        data-umami-event="click-call"
+        data-umami-event-target="header"
+        aria-label={`Call ${phoneLabel}`}
+      >
+        <Phone size={14} strokeWidth={2} aria-hidden="true" />
+        <span class="hidden tabular-nums lg:inline">{phoneLabel}</span>
+      </a>
+    )}
   </div>
+  <div class="h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" aria-hidden="true"></div>
 </header>
+
+<style
+  set:html={`
+    /* Desktop overrides: on >=1024px the header expands to fit the
+     * (usually larger) desktop logo height, and the logo itself
+     * grows to its full tenant-configured height. Both values come
+     * from CSS custom properties set inline above, so per-tenant
+     * config propagates without a build. */
+    @media (min-width: 1024px) {
+      [data-header] { height: ${headerHeightDesktop}px !important; }
+      .header-logo { height: var(--logo-h-desktop) !important; }
+    }
+  `}
+/>
+

@@ -32,10 +32,17 @@ const pixel = {
 const hasPixel = location.meta_pixel_ids && location.meta_pixel_ids.length > 0;
 const hasUmami = !!location.umami_website_id;
 
-// Favicon: per-brand override → falls back to logo_url (browsers scale
-// it) → finally to /favicon.svg shipped in public/. Rel `icon` with
-// rel `apple-touch-icon` alias so home-screen installs pick it up.
-const faviconHref = brand.favicon_url ?? brand.logo_url ?? "/favicon.svg";
+// Favicon resolution cascade:
+//   1. brand.favicon_url         — explicit favicon uploaded by the operator
+//   2. brand.logo_url_nav        — compact/square nav-mark (usually the right
+//                                  shape for a 32×32 crop; U Babci ships one)
+//   3. brand.logo_url            — hero wordmark. Wide wordmarks scale poorly
+//                                  to 32×32 but it's still better than a
+//                                  generic MySite icon in the tab
+//   4. /favicon.svg              — bundled MySite default
+// `rel="icon"` + `rel="apple-touch-icon"` so home-screen installs pick it up.
+const faviconHref =
+  brand.favicon_url ?? brand.logo_url_nav ?? brand.logo_url ?? "/favicon.svg";
 const faviconIsSvg = faviconHref.endsWith(".svg") || faviconHref.startsWith("/favicon.svg");
 ---
 

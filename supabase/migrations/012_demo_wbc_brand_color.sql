@@ -7,7 +7,7 @@
 -- Applied via BrandStyleTag → :root { --primary: ...; --primary-foreground: ...; }
 -- which propagates through every surface using bg-primary / text-primary-foreground:
 --   * PromoBanner card on landing (the loud CTA)
---   * Primary CTA buttons across /promocja (Save to photos, Save number)
+--   * Primary CTA buttons across /rewards (Save to photos, Save number)
 --   * Logo fallback tile if no logo_url is set
 --
 -- Kept out of migrations 005/008 (the original seed) because it's a

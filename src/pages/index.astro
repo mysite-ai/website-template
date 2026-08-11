@@ -2,12 +2,10 @@
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import Hero from "@/components/sections/Hero.astro";
 import QuickActions from "@/components/sections/QuickActions.astro";
-import Hours from "@/components/sections/Hours.astro";
-import Socials from "@/components/sections/Socials.astro";
 import Gallery from "@/components/sections/Gallery.astro";
+import Contact from "@/components/sections/Contact.astro";
 import MenuPreview from "@/components/sections/MenuPreview.astro";
 import About from "@/components/sections/About.astro";
-import MapEmbed from "@/components/sections/MapEmbed.astro";
 import Delivery from "@/components/sections/Delivery.astro";
 import { buildLocationSeo } from "@/lib/seo/schema";
 
@@ -20,14 +18,12 @@ Astro.response.headers.set(
 );
 ---
 
-<BaseLayout tenant={tenant} seo={seo} currentPath="/" showHeader={false}>
+<BaseLayout tenant={tenant} seo={seo} currentPath="/">
   <Hero tenant={tenant} />
   <QuickActions tenant={tenant} />
-  <Hours tenant={tenant} />
-  <Socials tenant={tenant} />
   <Gallery tenant={tenant} />
+  <Contact tenant={tenant} />
   <MenuPreview tenant={tenant} />
   <About tenant={tenant} />
-  <MapEmbed tenant={tenant} />
   <Delivery tenant={tenant} />
 </BaseLayout>

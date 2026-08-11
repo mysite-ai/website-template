@@ -71,6 +71,19 @@ update template_brands set theme = '{}'::jsonb where slug = 'demo';
 
 Uploaded logos live in Supabase Storage under the public `assets` bucket. Path convention: `logos/<brand-slug>.png` (or `.svg`).
 
+### Two logo variants (optional)
+
+Brands can ship **two distinct logos** — the template renders whichever fits each context:
+
+| Column | Rendered in | Best shape |
+| --- | --- | --- |
+| `logo_url` | Hero (`/`), Footer, `/rewards` header row | Wide wordmark — full brand name + illustration. Reads great at 128–176px tall. |
+| `logo_url_nav` | Sticky Header on every route | Compact / square mark — illustration only. Reads at 32–56px tall. |
+
+If a brand ships only one logo, set `logo_url` and leave `logo_url_nav = NULL` — the Header falls back to `logo_url`. This is the right call for square monogram marks (Doublz, Stacks) that work at any size.
+
+Set both when the main mark is a wide wordmark that would be crushed at nav height (e.g. U Babci Polish Kitchen — the full wordmark goes in `logo_url`, the compact babcia+Poland mark goes in `logo_url_nav`).
+
 ### Upload via Supabase Studio
 
 1. Storage → `assets` → `logos/` → **Upload files**
@@ -79,8 +92,15 @@ Uploaded logos live in Supabase Storage under the public `assets` bucket. Path c
 4. Paste into `template_brands.logo_url`:
 
 ```sql
+-- Single logo (most brands) — works for both hero and nav
 update template_brands
    set logo_url = 'https://tkltfqshwwxykxhxthem.supabase.co/storage/v1/object/public/assets/logos/my-cafe.png'
+ where slug = 'my-cafe';
+
+-- Two variants — hero wordmark + compact nav mark
+update template_brands
+   set logo_url     = 'https://tkltfqshwwxykxhxthem.supabase.co/storage/v1/object/public/assets/logos/my-cafe-wordmark.png',
+       logo_url_nav = 'https://tkltfqshwwxykxhxthem.supabase.co/storage/v1/object/public/assets/logos/my-cafe-mark.png'
  where slug = 'my-cafe';
 ```
 
@@ -104,19 +124,56 @@ echo "$SUPABASE_URL/storage/v1/object/public/assets/logos/my-cafe.png"
 Then set `template_brands.logo_url` to that URL.
 
 Design constraints:
-- Aim for a **square-ish crop** — the Hero renders it at 80–96px, the /promocja header row at 32px, the footer at 56px. All use `object-contain`, so transparency and aspect ratio are preserved.
+- **Any aspect ratio works** — the Header renders the logo at natural width with a controlled height (default 40px mobile / 48px desktop); the Hero uses natural width with a max-height (default 128 / 160). Both defaults are overridable per-tenant — see "Adjust logo size" below.
 - **Transparent background** looks best against the light card surface.
 - **PNG or SVG** — SVG scales better on high-DPI, but PNG is fine at ~1500×1000.
+- **Crop tightly to the artwork.** The Hero/Header use `object-contain`, which respects any transparent padding baked into the PNG. If your PNG has 15% empty space on top and bottom, the rendered logo will look 15% smaller than tenants with tight crops. Trim to the artwork's real bounding box + ~3% breathing room before uploading. A quick Python one-liner: `from PIL import Image; im = Image.open('logo.png').convert('RGBA'); im.crop(im.getbbox()).save('logo-cropped.png')`.
 
 If `logo_url` is `NULL`, the template falls back to a colored square with the brand's first letter — driven by `--primary` so it inherits the brand color.
 
+## Adjust logo size
+
+Two per-tenant knobs live on `template_brands`:
+
+| Column | Default | Range | Effect |
+| --- | --- | --- | --- |
+| `logo_header_height` | 48 | 16–96 | Height (px) of the logo inside the sticky Header on desktop. Mobile auto-scales to ~85% of this. Header row height auto-fits. |
+| `logo_hero_max_height` | 160 | 32–320 | Max-height (px) of the logo above the H1 on the home page (desktop). Mobile auto-scales to ~80%. |
+
+**When to touch these:**
+
+- Wide wordmark logo (like The White Bear Coffee): bump both — the fine linework becomes illegible at the defaults. WBC uses `logo_header_height = 56`, `logo_hero_max_height = 176`.
+- Compact square monogram (Doublz, Stacks): defaults are usually right — leave `NULL` for both.
+- Very tall vertical mark: keep header height modest (40–48) so the sticky nav row doesn't get too tall, but push `logo_hero_max_height` higher (e.g. 200) so the mark reads as a hero.
+
+```sql
+update template_brands
+   set logo_header_height  = 56,
+       logo_hero_max_height = 176
+ where slug = 'my-cafe';
+```
+
+Set to `NULL` to reset to component defaults:
+
+```sql
+update template_brands
+   set logo_header_height  = NULL,
+       logo_hero_max_height = NULL
+ where slug = 'my-cafe';
+```
+
+The values propagate on the next request after the resolver cache expires (~60s).
+
 ## Change the favicon
 
-Every page emits `<link rel="icon">` + `<link rel="apple-touch-icon">` pointing at the brand's favicon. Resolution order:
+Every page emits `<link rel="icon">` + `<link rel="apple-touch-icon">` pointing at the brand's favicon. Resolution order (first non-null wins):
 
-1. `template_brands.favicon_url` — the per-brand override
-2. `template_brands.logo_url` — falls back to the main logo (browsers scale to 32px automatically)
-3. `/favicon.svg` — the generic MySite default shipped in the template's `public/` folder
+1. `template_brands.favicon_url` — dedicated favicon uploaded for this brand
+2. `template_brands.logo_url_nav` — the compact square nav-mark (usually the right shape at 32×32; use this for brands whose nav-mark is square/circular like U Babci)
+3. `template_brands.logo_url` — the hero wordmark. Wide marks scale poorly to 32×32 but this is still better than a generic MySite icon
+4. `/favicon.svg` — the bundled MySite default shipped in `public/`
+
+**Recommendation**: for the cleanest tab icon, either upload a proper `favicon_url` (a 64×64 SVG or PNG of the mark), or ship a `logo_url_nav` (which is anyway the right image for the sticky header). Both automatically become the favicon — no separate step needed.
 
 Convention for uploaded favicons: `assets/favicons/<brand-slug>.svg` in Supabase Storage.
 
@@ -213,6 +270,44 @@ update template_locations
 
 If either is `NULL`, that icon is hidden. If both are `NULL`, the socials row is hidden.
 
+## Add Google reviews rating
+
+The Hero (`/`) renders an optional social-proof chip below the H1: `4.6 ★★★★★ · 394 reviews`, styled after Kinoko's landing page. It lives on `template_locations` because ratings are per-venue, not per-brand — Doublz El Monte and Doublz Nashville each have their own GBP listing.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `google_rating` | numeric(2,1) | Star rating like `4.6`. Nullable. |
+| `google_reviews_count` | integer | Review count like `394`. Nullable. |
+| `google_place_url` | text | Optional GBP deep-link. When set, the chip becomes clickable. |
+
+**Rule of thumb**: only set these when you have the **real numbers** from the tenant's actual Google Business Profile. Never make them up — real customers will land here from an ad, click through to Google Maps to double-check, and immediately notice a mismatch. The chip is a trust-builder; a fake chip destroys trust.
+
+The chip is rendered only when BOTH `google_rating` and `google_reviews_count` are non-null, so leaving them `NULL` cleanly hides the chip.
+
+```sql
+-- Real values (grab the current rating + count from the tenant's GBP)
+update template_locations
+   set google_rating        = 4.6,
+       google_reviews_count = 394,
+       google_place_url     = 'https://www.google.com/maps/place/?q=place_id:ChIJ...' -- optional
+ where slug = 'my-cafe';
+
+-- Turn the chip off
+update template_locations
+   set google_rating        = NULL,
+       google_reviews_count = NULL,
+       google_place_url     = NULL
+ where slug = 'my-cafe';
+```
+
+**Where to find the real values** for `google_place_url`:
+
+1. Open Google Maps, search for the tenant's business name.
+2. Click the listing. The URL bar now contains something like `.../place/data=!4m6!3m5!1s0x89c25...`
+3. Copy the full URL and paste it into `google_place_url`. It works both as a share link and as a Places API `place_id` reference.
+
+The rating and count you can just read off the listing directly and copy in by hand.
+
 ## Change delivery providers
 
 ```sql
@@ -284,7 +379,7 @@ Constraints (validator will reject otherwise):
 
 ## Change the promo (loyalty program)
 
-The promo displayed on `/` (banner) and `/promocja` (full flow) is driven by two things:
+The promo displayed on `/` (banner) and `/rewards` (full flow) is driven by two things:
 
 1. **The FK columns on `template_locations`**: `attribution_promotion_id`, `attribution_campaign_id`, `attribution_org_id`, `attribution_location_id`. These are UUIDs in the **separate** `attribution-autopilot` Supabase project (see `docs/04-attribution-integration.md`).
 2. **Cached display strings on `template_locations`**: `promotion_name_cached`, `reward_description_cached`. Rendered pre-reveal, before the visitor clicks and we know the real promo name.
@@ -304,7 +399,7 @@ update template_locations
 
 The four attribution UUIDs must exist in the `attribution-autopilot` project **and** the hostname must be allow-listed in `attribution-autopilot.location_origins` (see `docs/04-attribution-integration.md`) or the CORS preflight fails.
 
-**Unset the promo** (banner and /promocja become "not configured"):
+**Unset the promo** (banner and /rewards become "not configured"):
 
 ```sql
 update template_locations
@@ -392,7 +487,7 @@ For a **hard cache flush without waiting**, push any commit to `main` — Vercel
 ## Common mistakes
 
 - **Editing `template_brands.theme` and not seeing the color change** → likely you're testing within 60s of the update. Wait, or trigger a redeploy.
-- **Attribution IDs updated but /promocja still shows old promo name** → check `promotion_name_cached` on the location row. The cache is denormalized and doesn't auto-refresh from attribution-autopilot; you have to update it manually.
-- **Custom domain added but CORS error on /promocja** → forgot the `location_origins` insert in attribution-autopilot. `LocationsService.getAllOriginsCached()` in attribution has its own 60s cache, so wait after inserting.
+- **Attribution IDs updated but /rewards still shows old promo name** → check `promotion_name_cached` on the location row. The cache is denormalized and doesn't auto-refresh from attribution-autopilot; you have to update it manually.
+- **Custom domain added but CORS error on /rewards** → forgot the `location_origins` insert in attribution-autopilot. `LocationsService.getAllOriginsCached()` in attribution has its own 60s cache, so wait after inserting.
 - **Menu JSON edit rejected → "Menu coming soon"** → zod parse failed. Check the DB row against the schema in `src/lib/menu/types.ts`. Common causes: missing `id` or `name` on a category/item, unrecognized tag, wrong currency string.
 - **Trying to make `doublz.mysite.social` load** (bare brand root) → this is 404 by design. The trigger in migration 011 rejects the insert. Use `<location>.doublz.mysite.social` instead.

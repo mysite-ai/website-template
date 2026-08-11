@@ -1,0 +1,145 @@
+---
+import type { TenantContext } from "@/lib/tenant/types";
+import { formatPhone } from "@/lib/utils";
+import { Navigation, Phone, Mail, MapPin, Clock } from "lucide-react";
+
+interface Props {
+  tenant: TenantContext;
+}
+
+const { tenant } = Astro.props;
+const { location } = tenant;
+
+const addressLine1 = location.address_line;
+const addressLine2 = [location.postal_code, location.city].filter(Boolean).join(" ");
+const phoneHref = location.phone ? `tel:${location.phone.replace(/\s+/g, "")}` : null;
+const emailHref = location.email ? `mailto:${location.email}` : null;
+const directionsHref = location.maps_search_query
+  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.maps_search_query)}`
+  : null;
+
+const hasContact =
+  addressLine1 ||
+  phoneHref ||
+  emailHref ||
+  location.weekday_hours ||
+  location.weekend_hours;
+const hasMap = !!location.maps_embed_url;
+const shouldRender = hasContact || hasMap;
+---
+
+{shouldRender && (
+  <section id="location" class="section-well mt-8 scroll-mt-16 lg:mt-14">
+    <h2 class="section-heading mb-4 px-1 lg:mb-5">Contact</h2>
+
+    <div class="grid gap-4 lg:grid-cols-2 lg:gap-6">
+      {/* Column A: address, hours, phone, email */}
+      {hasContact && (
+        <div class="rounded-xl bg-card p-5 ring-1 ring-foreground/10 lg:p-6">
+          <dl class="space-y-4 text-[14px] lg:space-y-5">
+            {addressLine1 && (
+              <div class="flex items-start gap-3">
+                <MapPin size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <div class="min-w-0">
+                  <dt class="section-label mb-1">Address</dt>
+                  <dd class="text-foreground">
+                    <p>{addressLine1}</p>
+                    {addressLine2 && <p class="text-muted-foreground">{addressLine2}</p>}
+                    {directionsHref && (
+                      <a
+                        href={directionsHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="mt-1.5 inline-flex items-center gap-1 text-[12.5px] font-medium text-primary hover:underline"
+                        data-umami-event="click-directions"
+                        data-umami-event-target="section-contact"
+                      >
+                        <Navigation size={12} strokeWidth={2} aria-hidden="true" />
+                        Get directions
+                      </a>
+                    )}
+                  </dd>
+                </div>
+              </div>
+            )}
+
+            {(location.weekday_hours || location.weekend_hours) && (
+              <div class="flex items-start gap-3">
+                <Clock size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <div class="min-w-0 flex-1">
+                  <dt class="section-label mb-1">Hours</dt>
+                  <dd class="space-y-1">
+                    {location.weekday_hours && (
+                      <div class="flex items-baseline justify-between gap-3">
+                        <span class="text-muted-foreground">Mon – Fri</span>
+                        <span class="font-medium tabular-nums">{location.weekday_hours}</span>
+                      </div>
+                    )}
+                    {location.weekend_hours && (
+                      <div class="flex items-baseline justify-between gap-3">
+                        <span class="text-muted-foreground">Sat – Sun</span>
+                        <span class="font-medium tabular-nums">{location.weekend_hours}</span>
+                      </div>
+                    )}
+                  </dd>
+                </div>
+              </div>
+            )}
+
+            {phoneHref && location.phone && (
+              <div class="flex items-start gap-3">
+                <Phone size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <div class="min-w-0">
+                  <dt class="section-label mb-1">Phone</dt>
+                  <dd>
+                    <a
+                      href={phoneHref}
+                      class="font-medium tabular-nums text-foreground hover:text-primary"
+                      data-umami-event="click-call"
+                      data-umami-event-target="section-contact"
+                    >
+                      {formatPhone(location.phone)}
+                    </a>
+                  </dd>
+                </div>
+              </div>
+            )}
+
+            {emailHref && location.email && (
+              <div class="flex items-start gap-3">
+                <Mail size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <div class="min-w-0">
+                  <dt class="section-label mb-1">Email</dt>
+                  <dd>
+                    <a
+                      href={emailHref}
+                      class="font-medium text-foreground hover:text-primary break-all"
+                      data-umami-event="click-email"
+                      data-umami-event-target="section-contact"
+                    >
+                      {location.email}
+                    </a>
+                  </dd>
+                </div>
+              </div>
+            )}
+          </dl>
+        </div>
+      )}
+
+      {/* Column B: embedded map */}
+      {hasMap && (
+        <div class="overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+          <iframe
+            src={location.maps_embed_url!}
+            title={`Map — ${location.name}`}
+            class="h-full min-h-[280px] w-full border-0 lg:min-h-[400px]"
+            loading="lazy"
+            allowfullscreen
+            referrerpolicy="no-referrer-when-downgrade"
+          />
+        </div>
+      )}
+    </div>
+  </section>
+)}

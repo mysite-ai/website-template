@@ -1,5 +1,5 @@
 ---
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import type { TenantContext } from "@/lib/tenant/types";
 import { formatPhone } from "@/lib/utils";
 import { Navigation, Phone } from "lucide-react";
@@ -21,22 +21,22 @@ const shouldRender = addressLine1 || location.maps_embed_url;
 ---
 
 {shouldRender && (
-  <section id="location" class="section-well mt-6 scroll-mt-16">
-    <p class="section-label mb-3 px-1">Location</p>
-    <Card className="p-0 gap-0">
+  <section id="location" class="section-well mt-6 scroll-mt-16 lg:mt-8">
+    <h2 class="section-heading mb-3 px-1">Location</h2>
+    <Card className="!p-0 gap-0">
       {location.maps_embed_url && (
         <iframe
           src={location.maps_embed_url}
           title={`Map — ${location.name}`}
-          class="w-full aspect-[16/9] border-0"
+          class="w-full aspect-[16/10] border-0"
           loading="lazy"
           allowfullscreen
           referrerpolicy="no-referrer-when-downgrade"
         />
       )}
 
-      <div class="p-4">
-        <p class="text-[15px] font-semibold tracking-tight">{location.name}</p>
+      <div class="p-4 lg:p-5">
+        <p class="text-[15.5px] font-semibold tracking-tight lg:text-[16px]">{location.name}</p>
         {addressLine1 && (
           <p class="mt-0.5 text-[13px] text-muted-foreground">{addressLine1}</p>
         )}
@@ -50,7 +50,7 @@ const shouldRender = addressLine1 || location.maps_embed_url;
               href={directionsHref}
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium py-2.5 hover:opacity-90 transition-opacity"
+              class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary text-[13.5px] font-medium text-primary-foreground transition-all hover:opacity-90 active:translate-y-px"
               data-umami-event="click-directions"
               data-umami-event-target="section-location"
             >
@@ -61,7 +61,7 @@ const shouldRender = addressLine1 || location.maps_embed_url;
           {phoneHref && location.phone && (
             <a
               href={phoneHref}
-              class="inline-flex items-center justify-center gap-2 rounded-lg bg-card text-foreground text-[13px] font-medium py-2.5 ring-1 ring-foreground/10 hover:bg-muted transition-colors tabular-nums"
+              class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-card text-[13.5px] font-medium tabular-nums text-foreground ring-1 ring-foreground/10 transition-colors hover:bg-muted active:translate-y-px"
               data-umami-event="click-call"
               data-umami-event-target="section-location"
             >

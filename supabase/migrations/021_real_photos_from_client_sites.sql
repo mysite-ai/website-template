@@ -14,7 +14,7 @@
 --   logos/doublz-logo-v2.png (real blue/yellow logo)
 
 -- ---------------------------------------------------------------------------
--- 1. WBC Marszałkowska — replace 6 generic gallery images with 9 real photos
+-- 1. WBC Marszalkowska — replace 6 generic gallery images with 9 real photos
 -- ---------------------------------------------------------------------------
 update public.template_locations l
 set gallery = jsonb_build_array(

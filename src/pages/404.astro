@@ -15,10 +15,16 @@ Astro.response.status = 404;
   </head>
   <body class="min-h-screen grid place-items-center bg-background text-foreground">
     <div class="section-well text-center py-16">
-      <p class="text-[80px] font-semibold tracking-tight leading-none">404</p>
-      <p class="mt-4 text-[14px] text-muted-foreground max-w-xs mx-auto">
+      <p class="text-[80px] font-semibold leading-none tracking-tight text-foreground/90">404</p>
+      <p class="mx-auto mt-4 max-w-xs text-[14px] leading-relaxed text-muted-foreground">
         We couldn't find that page. Check the URL, or head back to the home page.
       </p>
+      <a
+        href="/"
+        class="mt-6 inline-flex h-9 items-center rounded-full bg-foreground px-4 text-[13px] font-medium text-background transition-opacity hover:opacity-90"
+      >
+        Back to home
+      </a>
     </div>
   </body>
 </html>

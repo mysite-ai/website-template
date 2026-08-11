@@ -1,5 +1,6 @@
 ---
 import { Card, CardContent } from "@/components/ui/card";
+import { marked } from "marked";
 import type { TenantContext } from "@/lib/tenant/types";
 
 interface Props {
@@ -8,17 +9,75 @@ interface Props {
 
 const { tenant } = Astro.props;
 const about = tenant.brand.about_md;
+
+/*
+ * `template_brands.about_md` is authored in Markdown by the operator
+ * (name intentionally ends in `_md` — the whole point of this column
+ * is that operators can bold parts of their story, quote grandmother's
+ * name in italics, wrap paragraph breaks with blank lines etc.).
+ *
+ * We render it server-side at build/request time — no runtime JS
+ * shipped for this section. `marked` is configured with:
+ *   - `gfm: true`      — allow GitHub-flavored extensions (autolinks etc.)
+ *   - `breaks: false`  — a single newline is NOT a <br>; operators use
+ *                        blank lines to separate paragraphs (Markdown's
+ *                        canonical behavior)
+ * The output is a small paragraphs-and-emphasis subset, so we don't
+ * need DOMPurify — but keep this in mind if we ever accept
+ * operator-authored `<script>` or images.
+ */
+const aboutHtml = about
+  ? marked.parse(about, { async: false, gfm: true, breaks: false })
+  : null;
 ---
 
-{about && (
-  <section class="section-well mt-6">
-    <p class="section-label mb-3 px-1">About</p>
+{aboutHtml && (
+  <section class="section-well mt-6 lg:mt-8">
+    <h2 class="section-heading mb-3 px-1">About</h2>
     <Card>
       <CardContent>
-        <div class="text-[14px] leading-relaxed whitespace-pre-line text-foreground/85">
-          {about}
-        </div>
+        <div class="prose-about text-[14.5px] leading-relaxed text-foreground/85 lg:text-[15px]" set:html={aboutHtml} />
       </CardContent>
     </Card>
   </section>
 )}
+
+<style is:global>
+  /* Minimal typographic pass for the operator-authored Markdown block.
+   * We avoid `@tailwindcss/typography` — it's a big dependency and
+   * we only need three rules here. Kept scoped to `.prose-about`. */
+  .prose-about > p + p {
+    margin-top: 0.75em;
+  }
+  .prose-about strong {
+    font-weight: 600;
+    color: var(--foreground);
+  }
+  .prose-about em {
+    font-style: italic;
+  }
+  .prose-about a {
+    color: var(--primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+  }
+  .prose-about a:hover {
+    text-decoration-thickness: 2px;
+  }
+  .prose-about ul,
+  .prose-about ol {
+    margin-top: 0.5em;
+    padding-left: 1.25em;
+    list-style-position: outside;
+  }
+  .prose-about ul {
+    list-style-type: disc;
+  }
+  .prose-about ol {
+    list-style-type: decimal;
+  }
+  .prose-about li + li {
+    margin-top: 0.25em;
+  }
+</style>

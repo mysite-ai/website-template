@@ -7,7 +7,7 @@ const tenant = Astro.locals.tenant;
 const { brand, location, primaryHostname } = tenant;
 const seo = buildLocationSeo({
   tenant,
-  path: "/promocja",
+  path: "/rewards",
   title: `Rewards — ${brand.name}`,
 });
 
@@ -38,7 +38,7 @@ const addressLabel = [location.address_line, location.postal_code, location.city
   .join(", ");
 ---
 
-<BaseLayout tenant={tenant} seo={seo} currentPath="/promocja" showHeader={false}>
+<BaseLayout tenant={tenant} seo={seo} currentPath="/rewards" showHeader={false}>
   {attribution ? (
     <PromoFlow
       client:load
@@ -48,6 +48,7 @@ const addressLabel = [location.address_line, location.postal_code, location.city
       addressLabel={addressLabel}
       domain={primaryHostname}
       phone={location.phone}
+      defaultCountry={location.country}
       promotionName={location.promotion_name_cached}
       rewardDescription={location.reward_description_cached}
       attribution={attribution}

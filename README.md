@@ -15,7 +15,7 @@ Set the `x-preview=1` cookie and visit `http://localhost:4321/?tenant=<location-
 ## Live smoke test
 
 - **Deploy**: [website-template-iota-one.vercel.app](https://website-template-iota-one.vercel.app)
-- **Tenant**: The White Bear Coffee — Marszałkowska (seeded via migrations 005–010)
+- **Tenant**: The White Bear Coffee — Marszalkowska (seeded via migrations 005–010)
 - **Loyalty**: wired to a dedicated smoke-test promotion in `attribution-autopilot` (real QR generation works)
 
 ## Domain model
@@ -55,6 +55,7 @@ Colors, logo, menu, hours, gallery, promo — all in Supabase, no code deploy ne
 
 ## Docs
 
+- **[`docs/PRODUCT-REQUIREMENTS.md`](docs/PRODUCT-REQUIREMENTS.md) — start here.** Product-owner-friendly walkthrough of every feature this platform ships, with links back into the code. Read this if you want to know *what* it does before you dive into *how*.
 - `docs/01-architecture.md` — request lifecycle, resolver, why service_role
 - `docs/02-adding-a-client.md` — the onboarding runbook (both patterns)
 - `docs/03-design-system.md` — base-nova tokens + composition layer
