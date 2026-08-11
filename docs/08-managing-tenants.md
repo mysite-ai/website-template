@@ -322,6 +322,92 @@ update template_locations
 
 Any 1–N entries render as a divide-y list card. Empty array `[]` hides the section.
 
+## Configure the action tiles below the hero
+
+Every tenant renders a row of "next step" tiles between the Hero and the Gallery — the same row that hosts Directions / Order / Book / Call etc. The tiles are fully driven by a single JSONB column: `template_locations.action_tiles`.
+
+**Contract**:
+
+```json
+[
+  { "type": "directions", "href": "https://www.google.com/maps/search/?api=1&query=..." },
+  { "type": "book",       "href": "https://opentable.com/...", "label": "Book at OpenTable" },
+  { "type": "call",       "href": "tel:+15551234567" }
+]
+```
+
+Each item has:
+
+- **`type`** (required, closed enum): `call` · `directions` · `order` · `book` · `reserve` · `website` · `whatsapp` · `email`. Every type ships with a hardcoded lucide icon and a default label — you don't need to write CSS or pick an icon. Unknown types are silently skipped by the renderer.
+- **`href`** (required): the destination. `tel:` and `mailto:` stay in-page; anything else opens in a new tab.
+- **`label`** (optional): override the default label (e.g. `"Book at OpenTable"` instead of `"Book a table"`).
+
+**Ordering matters** — the array order is the render order left-to-right.
+
+**Common recipes**:
+
+```sql
+-- Fast-casual: get me directions or order now
+update template_locations
+   set action_tiles = '[
+     {"type":"directions","href":"https://www.google.com/maps/search/?api=1&query=My+Cafe"},
+     {"type":"order",     "href":"https://wolt.com/en/pol/warsaw/venue/mycafe", "label":"Wolt"}
+   ]'::jsonb
+ where slug = 'my-cafe';
+
+-- Restaurant with reservations
+update template_locations
+   set action_tiles = '[
+     {"type":"directions","href":"https://www.google.com/maps/search/?api=1&query=My+Bistro"},
+     {"type":"book",      "href":"https://www.opentable.com/r/my-bistro"},
+     {"type":"call",      "href":"tel:+1234567890"}
+   ]'::jsonb
+ where slug = 'my-bistro';
+
+-- Coffee shop with a Wordpress site + Instagram DMs
+update template_locations
+   set action_tiles = '[
+     {"type":"directions","href":"https://www.google.com/maps/search/?api=1&query=Third+Wave"},
+     {"type":"website",   "href":"https://thirdwave.example.com"},
+     {"type":"whatsapp",  "href":"https://wa.me/15551234567"}
+   ]'::jsonb
+ where slug = 'third-wave';
+```
+
+**Reset to defaults**:
+
+```sql
+update template_locations
+   set action_tiles = NULL
+ where slug = 'my-cafe';
+```
+
+When `action_tiles` is `NULL`, the QuickActions section auto-derives Directions + first Order provider from `maps_search_query` + `delivery[0]`. This matches the pre-migration-028 behaviour, so tenants we haven't manually configured yet still get a sensible row.
+
+**To disable the tiles entirely** for a tenant, set `action_tiles = '[]'::jsonb` — the empty array explicitly means "render nothing." (Distinguishing `NULL` = "use defaults" from `[]` = "no tiles" is the only reason the renderer treats them differently.)
+
+## Turn loyalty on or off
+
+Loyalty is **opt-in per location**. To enable it, set all three attribution IDs (`attribution_org_id`, `attribution_promotion_id`, `attribution_campaign_id`) on a location — the values come from the `attribution-autopilot` service after you create the promotion there. See [docs/04-attribution-integration.md](04-attribution-integration.md).
+
+To turn it off, set any of the three to `NULL`:
+
+```sql
+update template_locations
+   set attribution_org_id       = NULL,
+       attribution_promotion_id = NULL,
+       attribution_campaign_id  = NULL
+ where slug = 'my-cafe';
+```
+
+When loyalty is off:
+
+- The **Rewards** item disappears from the sticky nav.
+- The **promo banner** in the Hero doesn't render.
+- The `/rewards` page shows an empty state ("not configured for this location yet") rather than the QR flow.
+
+Everything else on the site works normally. Tenants that just want a marketing landing without a rewards program can leave the attribution columns null forever.
+
 ## Change the gallery
 
 ```sql

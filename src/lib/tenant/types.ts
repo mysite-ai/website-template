@@ -42,6 +42,36 @@ export interface GalleryImage {
   alt: string;
 }
 
+/**
+ * Supported action-tile types. This is a closed enum on purpose —
+ * every tile ships with a hardcoded icon + default label + link
+ * treatment so the "Action tiles" grid stays visually consistent
+ * across every tenant.
+ *
+ * To add a new type: extend both this union AND the TILE_REGISTRY
+ * in src/lib/action-tiles/registry.ts. Unknown types coming back
+ * from the DB are silently dropped by the renderer, so DB changes
+ * that anticipate a new type are safe to apply before the code
+ * ships.
+ */
+export type ActionTileType =
+  | "call"
+  | "directions"
+  | "order"
+  | "book"
+  | "reserve"
+  | "website"
+  | "whatsapp"
+  | "email";
+
+export interface ActionTile {
+  type: ActionTileType;
+  /** Destination — `tel:`, `mailto:`, `https:` etc. Required. */
+  href: string;
+  /** Optional override for the default label from the registry. */
+  label?: string;
+}
+
 export interface TenantLocation {
   id: string;
   brand_id: string;
@@ -69,6 +99,14 @@ export interface TenantLocation {
   facebook_url: string | null;
 
   delivery: DeliveryLink[];
+
+  /**
+   * Ordered list of "next step" tiles shown below the Hero. When
+   * `null`, `QuickActions.astro` falls back to an auto-derived
+   * default (Directions + first Order provider, if configured). Set
+   * to `[]` to render no tiles at all.
+   */
+  action_tiles: ActionTile[] | null;
 
   attribution_promotion_id: string | null;
   attribution_campaign_id: string | null;

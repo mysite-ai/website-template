@@ -1,6 +1,8 @@
 import { getServerSupabase } from "@/lib/supabase/server";
 import { parseMenu } from "@/lib/menu/parse";
 import type {
+  ActionTile,
+  ActionTileType,
   DeliveryLink,
   GalleryImage,
   TenantBrand,
@@ -95,6 +97,46 @@ function coerceGallery(raw: unknown): GalleryImage[] {
     .filter((v): v is GalleryImage => v !== null);
 }
 
+/*
+ * Coerce the raw JSONB action_tiles column into a strongly-typed
+ * ActionTile[]. Returns `null` (not `[]`) when the column is null so
+ * QuickActions can distinguish "operator has not configured tiles"
+ * (fall back to auto-derived defaults) from "operator wants no tiles
+ * at all" (empty array).
+ *
+ * Unknown `type` values are silently dropped. This lets the DB be
+ * migrated ahead of code (or vice versa) without breaking the render.
+ */
+const VALID_TILE_TYPES: readonly ActionTileType[] = [
+  "call",
+  "directions",
+  "order",
+  "book",
+  "reserve",
+  "website",
+  "whatsapp",
+  "email",
+];
+
+function coerceActionTiles(raw: unknown): ActionTile[] | null {
+  if (raw === null || raw === undefined) return null;
+  if (!Array.isArray(raw)) return null;
+  return raw
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const rec = entry as Record<string, unknown>;
+      const type = rec.type;
+      const href = rec.href;
+      const label = rec.label;
+      if (typeof type !== "string" || typeof href !== "string") return null;
+      if (!VALID_TILE_TYPES.includes(type as ActionTileType)) return null;
+      const tile: ActionTile = { type: type as ActionTileType, href };
+      if (typeof label === "string" && label.trim() !== "") tile.label = label;
+      return tile;
+    })
+    .filter((v): v is ActionTile => v !== null);
+}
+
 function coerceTheme(raw: unknown): TenantBrand["theme"] {
   if (!raw || typeof raw !== "object") return {};
   const record = raw as Record<string, unknown>;
@@ -139,6 +181,7 @@ interface LocationJoinRow {
   instagram_url: string | null;
   facebook_url: string | null;
   delivery: unknown;
+  action_tiles: unknown;
   attribution_promotion_id: string | null;
   attribution_campaign_id: string | null;
   attribution_org_id: string | null;
@@ -191,7 +234,7 @@ export async function resolveTenant(rawHost: string): Promise<TenantContext | nu
           latitude, longitude, phone, email,
           weekday_hours, weekend_hours,
           maps_embed_url, maps_search_query,
-          instagram_url, facebook_url, delivery,
+          instagram_url, facebook_url, delivery, action_tiles,
           attribution_promotion_id, attribution_campaign_id,
           attribution_org_id, attribution_location_id,
           promotion_name_cached, reward_description_cached,
@@ -258,6 +301,7 @@ export async function resolveTenant(rawHost: string): Promise<TenantContext | nu
     instagram_url: data.location.instagram_url,
     facebook_url: data.location.facebook_url,
     delivery: coerceDelivery(data.location.delivery),
+    action_tiles: coerceActionTiles(data.location.action_tiles),
     attribution_promotion_id: data.location.attribution_promotion_id,
     attribution_campaign_id: data.location.attribution_campaign_id,
     attribution_org_id: data.location.attribution_org_id,

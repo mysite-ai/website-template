@@ -1,7 +1,8 @@
 ---
 import { Card, CardContent } from "@/components/ui/card";
-import type { TenantContext } from "@/lib/tenant/types";
-import { Navigation, ShoppingBag } from "lucide-react";
+import type { TenantContext, ActionTile, ActionTileType } from "@/lib/tenant/types";
+import { formatPhone } from "@/lib/utils";
+import { TILE_REGISTRY, FALLBACK_ICON, isExternalHref } from "@/lib/action-tiles/registry";
 
 interface Props {
   tenant: TenantContext;
@@ -10,68 +11,140 @@ interface Props {
 const { tenant } = Astro.props;
 const { location } = tenant;
 
-const directionsHref = location.maps_search_query
-  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.maps_search_query)}`
-  : null;
-const deliveryHref = location.delivery[0]?.url ?? null;
+/*
+ * QuickActions renders the operator-configured `action_tiles` row
+ * below the Hero. Everything is driven from Supabase:
+ *
+ *   template_locations.action_tiles = [
+ *     { "type": "directions", "href": "..." },
+ *     { "type": "book",       "href": "...", "label": "Reserve at OpenTable" },
+ *     { "type": "order",      "href": "...", "label": "Wolt" }
+ *   ]
+ *
+ * When the column is NULL — typically for tenants that pre-date
+ * migration 028 — we auto-derive a sensible default:
+ *   - a Directions tile if maps_search_query is set
+ *   - an Order tile if a delivery provider is configured
+ *
+ * That default matches what the site rendered before action_tiles
+ * existed, so upgrading is invisible to operators.
+ */
 
-interface Tile {
-  icon: typeof Navigation;
-  label: string;
-  sublabel: string;
-  href: string;
-  umamiEvent: string;
+function buildFallback(): ActionTile[] {
+  const tiles: ActionTile[] = [];
+  if (location.maps_search_query) {
+    tiles.push({
+      type: "directions",
+      href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.maps_search_query)}`,
+    });
+  }
+  const firstDelivery = location.delivery[0];
+  if (firstDelivery?.url) {
+    tiles.push({
+      type: "order",
+      href: firstDelivery.url,
+      label: firstDelivery.name,
+    });
+  }
+  return tiles;
 }
 
-/*
- * Two primary next-step actions after the hero: "Go there" and "Get it
- * delivered". Calling is already covered by the phone button in the
- * header. Menu is covered by nav. If a tenant has neither directions
- * nor delivery configured, the section quietly disappears.
- */
-const tilesRaw: (Tile | null)[] = [
-  directionsHref
-    ? {
-        icon: Navigation,
-        label: "Directions",
-        sublabel: location.city ?? "Open in Maps",
-        href: directionsHref,
-        umamiEvent: "click-directions",
-      }
-    : null,
-  deliveryHref
-    ? {
-        icon: ShoppingBag,
-        label: "Order online",
-        sublabel: location.delivery[0]?.name ?? "Delivery",
-        href: deliveryHref,
-        umamiEvent: "click-delivery",
-      }
-    : null,
-];
+const tiles: ActionTile[] = location.action_tiles ?? buildFallback();
 
-const tiles = tilesRaw.filter((t): t is Tile => t !== null);
+/*
+ * Compute a human-readable sub-label per tile.
+ *
+ * We always show the tile's canonical `label` as the top line (either
+ * the operator's override or the registry default). The sub-line is a
+ * quick "where does this go" hint, distinct from the label:
+ *
+ *   - directions → the city name so the tile reads "Directions / Warsaw"
+ *   - call       → the formatted phone if the href is `tel:`
+ *   - email      → the email address if the href is `mailto:`
+ *   - everything else → the host portion of the URL, which reads well
+ *                       for links like `opentable.com`.
+ *
+ * Never show something that duplicates the top label — if the two
+ * would collide, hide the sub-line.
+ */
+function subLabelFor(tile: ActionTile, topLabel: string): string | null {
+  let candidate: string | null = null;
+  switch (tile.type) {
+    case "directions":
+      candidate = location.city ?? null;
+      break;
+    case "call": {
+      const raw = tile.href.replace(/^tel:/, "");
+      candidate = raw ? formatPhone(raw) : null;
+      break;
+    }
+    case "email":
+      candidate = tile.href.replace(/^mailto:/, "") || null;
+      break;
+    default:
+      try {
+        candidate = new URL(tile.href).hostname.replace(/^www\./, "");
+      } catch {
+        candidate = null;
+      }
+  }
+  if (!candidate) return null;
+  if (candidate.toLowerCase() === topLabel.toLowerCase()) return null;
+  return candidate;
+}
+
+interface Prepared {
+  key: string;
+  type: ActionTileType;
+  label: string;
+  sublabel: string | null;
+  href: string;
+  external: boolean;
+  ariaLabel: string;
+  umamiEvent: string;
+  icon: typeof FALLBACK_ICON;
+}
+
+const prepared: Prepared[] = tiles.map((tile, i) => {
+  const def = TILE_REGISTRY[tile.type];
+  const label = tile.label?.trim() || def.defaultLabel;
+  return {
+    key: `${tile.type}-${i}`,
+    type: tile.type,
+    label,
+    sublabel: subLabelFor(tile, label),
+    href: tile.href,
+    external: isExternalHref(tile.href),
+    ariaLabel: label,
+    umamiEvent: def.umamiEvent,
+    icon: def.icon ?? FALLBACK_ICON,
+  };
+});
 ---
 
-{tiles.length > 0 && (
+{prepared.length > 0 && (
   <section class="section-well mt-6 lg:mt-10">
     <div
       class:list={[
         "grid gap-3",
-        tiles.length === 1 ? "grid-cols-1" : "grid-cols-2",
+        prepared.length === 1 && "grid-cols-1",
+        prepared.length === 2 && "grid-cols-2",
+        prepared.length === 3 && "grid-cols-2 sm:grid-cols-3",
+        prepared.length >= 4 && "grid-cols-2 sm:grid-cols-4",
       ]}
     >
-      {tiles.map((tile) => {
+      {prepared.map((tile) => {
         const Icon = tile.icon;
         return (
           <a
             href={tile.href}
-            aria-label={tile.label}
+            aria-label={tile.ariaLabel}
             data-umami-event={tile.umamiEvent}
             data-umami-event-target="quick-actions"
-            target="_blank"
-            rel="noopener noreferrer"
             class="group block transition-transform active:scale-[0.98]"
+            {...(tile.external
+              ? { target: "_blank", rel: "noopener noreferrer" }
+              : {})}
           >
             <Card className="transition-colors group-hover:bg-muted/60">
               <CardContent className="flex items-center gap-3 py-3.5">
@@ -82,9 +155,11 @@ const tiles = tilesRaw.filter((t): t is Tile => t !== null);
                   <span class="block truncate text-[14px] font-semibold tracking-tight text-foreground">
                     {tile.label}
                   </span>
-                  <span class="block truncate text-[12px] text-muted-foreground">
-                    {tile.sublabel}
-                  </span>
+                  {tile.sublabel && (
+                    <span class="block truncate text-[12px] text-muted-foreground">
+                      {tile.sublabel}
+                    </span>
+                  )}
                 </span>
               </CardContent>
             </Card>

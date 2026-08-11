@@ -46,10 +46,21 @@ const logoHeightMobile = Math.round(logoHeightDesktop * 0.85);
 const headerHeightDesktop = Math.max(72, logoHeightDesktop + 32);
 const headerHeightMobile = Math.max(64, logoHeightMobile + 24);
 
+// Loyalty is optional per tenant. When a location has no
+// attribution promotion configured, the "Rewards" nav item is
+// hidden and the `/rewards` page renders an empty state (see
+// src/pages/rewards.astro). Menu is hidden the same way — tenants
+// without a menu shouldn't get a broken /menu link.
+const loyaltyConfigured =
+  !!location.attribution_promotion_id &&
+  !!location.attribution_campaign_id &&
+  !!location.attribution_org_id;
+const hasMenu = !!location.menu && location.menu.categories.length > 0;
+
 const links: Array<{ href: string; label: string }> = [
   { href: "/", label: "Home" },
-  { href: "/menu", label: "Menu" },
-  { href: "/rewards", label: "Rewards" },
+  ...(hasMenu ? [{ href: "/menu", label: "Menu" }] : []),
+  ...(loyaltyConfigured ? [{ href: "/rewards", label: "Rewards" }] : []),
 ];
 ---
 

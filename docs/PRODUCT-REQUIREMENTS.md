@@ -118,9 +118,17 @@ This is the exhaustive list of everything the operator (person running Supabase 
 | --- | --- |
 | I want a Contact section with two columns on desktop (address + hours + phone + email on the left, map on the right) — matches how Kinoko-style local sites do it. | [src/components/sections/Contact.astro](../src/components/sections/Contact.astro). |
 | I want a list of delivery providers with their real brand logos (Wolt, Glovo, Pyszne.pl, Uber Eats, DoorDash, Grubhub, Bolt). Ordering matters — first entry drives the "Order online" quick action. | Column `delivery` on `template_locations` (JSONB array of `{name, url}`). Logos are pre-fetched from logo.dev and shipped statically in [public/logos/delivery](../public/logos/delivery). Unknown providers gracefully fall back to a colored monogram. Code: [src/components/sections/Delivery.astro](../src/components/sections/Delivery.astro). Refresh script: [scripts/download-delivery-logos.sh](../scripts/download-delivery-logos.sh). |
-| I want quick-action tiles below the hero (Directions, Order online) that hide themselves when I haven't configured them (e.g. no `maps_search_query` → no Directions tile). | Section auto-collapses missing entries. Code: [src/components/sections/QuickActions.astro](../src/components/sections/QuickActions.astro). |
+| I want quick-action tiles below the hero that adapt to what my restaurant needs — sushi bar wants "Book a table + Call", fast-casual wants "Order + Directions", coffee shop wants "Directions + Website". | Column `template_locations.action_tiles` (JSONB array of `{type, href, label?}`). Supported types: `call`, `directions`, `order`, `book`, `reserve`, `website`, `whatsapp`, `email` — each with a hardcoded icon and default label in [src/lib/action-tiles/registry.ts](../src/lib/action-tiles/registry.ts). When the column is null, the section auto-derives Directions + first Order provider from other fields. Code: [src/components/sections/QuickActions.astro](../src/components/sections/QuickActions.astro). |
 
-### 4.6 Loyalty / rewards (paid-ad landing page)
+### 4.6 Loyalty / rewards (paid-ad landing page) — optional
+
+**Loyalty is opt-in per tenant.** A restaurant that doesn't run a loyalty program simply leaves `attribution_promotion_id` (and its two siblings) null. When that's the case:
+
+- The **Rewards** nav item disappears from the sticky header ([src/components/layout/Header.astro](../src/components/layout/Header.astro)).
+- The **promo banner** in the Hero doesn't render ([src/components/sections/Hero.astro](../src/components/sections/Hero.astro)).
+- The `/rewards` page still exists but renders an empty state ("The loyalty program isn't configured for this location yet") instead of the QR flow ([src/pages/rewards.astro](../src/pages/rewards.astro)).
+
+Everything else on the site works normally. The QuickActions tiles (Directions / Book / Order / Call / etc.) are the primary conversion mechanism for tenants without loyalty.
 
 | Requirement | Where it lives |
 | --- | --- |
