@@ -15,6 +15,13 @@ interface Props {
    * countdown is enabled and the deadline hasn't passed.
    */
   deadline?: string | Date | null;
+  /**
+   * Optional small "fine print" condition line (e.g. "Valid after 2 PM
+   * only"). Rendered muted at the very bottom. Controlled per-tenant via
+   * `promo_fine_print_enabled` + `promo_fine_print` — the parent passes a
+   * value only when enabled and non-empty.
+   */
+  finePrint?: string | null;
 }
 
 /**
@@ -29,12 +36,14 @@ interface Props {
  *   provided (the seconds visibly tick so the offer feels time-boxed).
  * - Sized to be unmistakably the primary action on a phone: large tap
  *   target, big headline, prominent icon. It should out-weigh the logo.
+ * - Optionally, a small muted "fine print" line at the very bottom for
+ *   conditions like "Valid after 2 PM only" (opt-in per tenant).
  * - Uses --primary / --primary-foreground so per-brand overrides
  *   propagate automatically.
  * - Icons are real lucide glyphs — an inline emoji renders as tofu on
  *   some fonts (Android WebView, older Chromium builds).
  */
-export default function PromoBanner({ href, headline, subline, deadline }: Props) {
+export default function PromoBanner({ href, headline, subline, deadline, finePrint }: Props) {
   return (
     <a
       href={href}
@@ -66,6 +75,12 @@ export default function PromoBanner({ href, headline, subline, deadline }: Props
       </div>
 
       {deadline != null && <PromoCountdownRow deadline={deadline} />}
+
+      {finePrint && (
+        <p className="relative mt-2.5 text-[11px] leading-snug text-primary-foreground/65">
+          {finePrint}
+        </p>
+      )}
     </a>
   );
 }

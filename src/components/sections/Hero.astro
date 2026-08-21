@@ -61,6 +61,16 @@ const promoDeadline =
   new Date(location.promo_deadline).getTime() > Date.now()
     ? location.promo_deadline
     : null;
+
+/*
+ * Optional "fine print" condition line under the CTA (e.g. "Valid after
+ * 2 PM only"). Opt-in per location: shown only when enabled and the text
+ * is non-empty. Off for every tenant by default (see migration 032).
+ */
+const promoFinePrint =
+  location.promo_fine_print_enabled && location.promo_fine_print?.trim()
+    ? location.promo_fine_print.trim()
+    : null;
 ---
 
 {brand.logo_url && <link rel="preload" as="image" href={brand.logo_url} />}
@@ -164,6 +174,7 @@ const promoDeadline =
           headline={location.reward_description_cached ?? location.promotion_name_cached ?? "Get your reward"}
           subline="Tap to get your QR code"
           deadline={promoDeadline}
+          finePrint={promoFinePrint}
         />
       </div>
     )}

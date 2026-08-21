@@ -127,6 +127,14 @@ export interface TenantLocation {
   /** ISO timestamp for when the promotion ends. Null = no countdown. */
   promo_deadline: string | null;
 
+  /**
+   * Optional small "fine print" line under the promo CTA (e.g. "Valid
+   * after 2 PM only"). Per-location and independently toggleable. Shown
+   * only when `promo_fine_print_enabled` is true AND the text is set.
+   */
+  promo_fine_print_enabled: boolean;
+  promo_fine_print: string | null;
+
   umami_website_id: string | null;
   meta_pixel_ids: string[];
 

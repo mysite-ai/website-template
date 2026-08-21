@@ -190,6 +190,8 @@ interface LocationJoinRow {
   reward_description_cached: string | null;
   promo_countdown_enabled: boolean | null;
   promo_deadline: string | null;
+  promo_fine_print_enabled: boolean | null;
+  promo_fine_print: string | null;
   umami_website_id: string | null;
   meta_pixel_ids: string[] | null;
   gallery: unknown;
@@ -241,6 +243,7 @@ export async function resolveTenant(rawHost: string): Promise<TenantContext | nu
           attribution_org_id, attribution_location_id,
           promotion_name_cached, reward_description_cached,
           promo_countdown_enabled, promo_deadline,
+          promo_fine_print_enabled, promo_fine_print,
           umami_website_id, meta_pixel_ids, gallery, menu,
           google_rating, google_reviews_count, google_place_url,
           brand:template_brands!inner (
@@ -313,6 +316,8 @@ export async function resolveTenant(rawHost: string): Promise<TenantContext | nu
     reward_description_cached: data.location.reward_description_cached,
     promo_countdown_enabled: data.location.promo_countdown_enabled ?? false,
     promo_deadline: data.location.promo_deadline,
+    promo_fine_print_enabled: data.location.promo_fine_print_enabled ?? false,
+    promo_fine_print: data.location.promo_fine_print,
     umami_website_id: data.location.umami_website_id,
     meta_pixel_ids: data.location.meta_pixel_ids ?? [],
     gallery: coerceGallery(data.location.gallery),
