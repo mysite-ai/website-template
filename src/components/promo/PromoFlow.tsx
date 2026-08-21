@@ -35,6 +35,12 @@ export interface PromoFlowProps {
   defaultCountry: string | null;
   promotionName: string | null;
   rewardDescription: string | null;
+  /**
+   * Optional small "fine print" condition (e.g. "Valid after 2 PM only"),
+   * mirrored from the hero PromoBanner so the terms are visible where the
+   * code is actually generated. Shown only when non-empty.
+   */
+  finePrint: string | null;
   attribution: AttributionLocation | null;
   pixel: PixelLocation;
 }
@@ -58,6 +64,7 @@ export default function PromoFlow(props: PromoFlowProps) {
     defaultCountry,
     promotionName,
     rewardDescription,
+    finePrint,
     attribution,
     pixel,
   } = props;
@@ -163,6 +170,11 @@ export default function PromoFlow(props: PromoFlowProps) {
               ? "Reveal your personal QR code below. Show it at the counter to claim your reward."
               : "Show this QR code at the counter to claim your reward."}
           </p>
+          {finePrint && (
+            <p className="fade-rise fade-rise-delay-2 mx-auto mt-3 inline-flex max-w-[26rem] items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[12px] font-medium text-primary">
+              {finePrint}
+            </p>
+          )}
         </header>
 
         {/* STEP 1 — TEASER */}

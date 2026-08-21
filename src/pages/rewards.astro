@@ -36,6 +36,13 @@ const displayName = brand.slug === location.slug ? brand.name : `${brand.name} Â
 const addressLabel = [location.address_line, location.postal_code, location.city]
   .filter(Boolean)
   .join(", ");
+
+// Mirror the hero's opt-in "fine print" condition (e.g. "Valid after
+// 2 PM only") onto the rewards page, where the code is generated.
+const promoFinePrint =
+  location.promo_fine_print_enabled && location.promo_fine_print?.trim()
+    ? location.promo_fine_print.trim()
+    : null;
 ---
 
 <BaseLayout tenant={tenant} seo={seo} currentPath="/rewards" showHeader={false}>
@@ -51,6 +58,7 @@ const addressLabel = [location.address_line, location.postal_code, location.city
       defaultCountry={location.country}
       promotionName={location.promotion_name_cached}
       rewardDescription={location.reward_description_cached}
+      finePrint={promoFinePrint}
       attribution={attribution}
       pixel={pixel}
     />
