@@ -123,9 +123,11 @@ const prepared: Prepared[] = tiles.map((tile, i) => {
 
 {prepared.length > 0 && (
   <section class="section-well mt-4 lg:mt-5">
-    {/* Linktree-style: a single narrow column of full-width pill links,
-        stacked one per row. Centered label with a leading icon, so the
-        list reads as the page's primary navigation. */}
+    {/* Linktree / White Bear-style: a single narrow column of full-width
+        pill links. Icon + label are centered together as one group so
+        each row reads as a clean, tappable button — the page's primary
+        navigation. Soft card surface, hairline border and a gentle lift
+        on hover keep it feeling premium. */}
     <div class="mx-auto flex max-w-[30rem] flex-col gap-2.5 lg:max-w-[36rem]">
       {prepared.map((tile) => {
         const Icon = tile.icon;
@@ -135,27 +137,27 @@ const prepared: Prepared[] = tiles.map((tile, i) => {
             aria-label={tile.ariaLabel}
             data-umami-event={tile.umamiEvent}
             data-umami-event-target="quick-actions"
-            class="group relative flex w-full items-center gap-3 rounded-2xl bg-card px-5 py-4 shadow-sm ring-1 ring-inset ring-foreground/10 transition-all hover:-translate-y-0.5 hover:bg-muted/60 hover:shadow-md active:translate-y-0 active:scale-[0.99]"
+            class="group flex w-full items-center justify-center gap-2.5 rounded-2xl border border-foreground/10 bg-card px-5 py-[15px] text-center shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_-16px_rgb(0_0_0/0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/[0.04] hover:shadow-[0_2px_4px_rgb(0_0_0/0.05),0_14px_32px_-16px_rgb(0_0_0/0.35)] active:translate-y-0 active:scale-[0.99]"
             {...(tile.external
               ? { target: "_blank", rel: "noopener noreferrer" }
               : {})}
           >
-            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-              <Icon size={19} strokeWidth={2} aria-hidden="true" />
-            </span>
-            <span class="min-w-0 flex-1 text-center">
+            <Icon
+              size={18}
+              strokeWidth={2}
+              aria-hidden="true"
+              class="shrink-0 text-primary transition-transform duration-200 group-hover:scale-110"
+            />
+            <span class="min-w-0">
               <span class="block truncate text-[15px] font-semibold tracking-tight text-foreground">
                 {tile.label}
               </span>
               {tile.sublabel && (
-                <span class="block truncate text-[12.5px] text-muted-foreground">
+                <span class="block truncate text-[12px] font-medium text-muted-foreground">
                   {tile.sublabel}
                 </span>
               )}
             </span>
-            {/* Spacer mirrors the icon width so the label stays optically
-                centered across the full pill. */}
-            <span class="h-9 w-9 shrink-0" aria-hidden="true"></span>
           </a>
         );
       })}
