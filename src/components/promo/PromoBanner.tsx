@@ -38,7 +38,7 @@ export default function PromoBanner({ href, headline, subline, deadline }: Props
   return (
     <a
       href={href}
-      className="group relative block overflow-hidden rounded-2xl bg-primary px-6 py-5 text-primary-foreground shadow-[0_1px_2px_rgb(0_0_0/0.04),0_10px_28px_-16px_rgb(0_0_0/0.35),0_28px_60px_-30px_rgb(0_0_0/0.45)] ring-1 ring-inset ring-primary-foreground/10 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_2px_4px_rgb(0_0_0/0.06),0_18px_40px_-16px_rgb(0_0_0/0.45),0_36px_80px_-30px_rgb(0_0_0/0.55)] active:translate-y-0 active:duration-75 sm:px-7 sm:py-6"
+      className="group relative block overflow-hidden rounded-2xl bg-primary px-6 py-5 text-primary-foreground shadow-lg shadow-primary/20 ring-1 ring-inset ring-primary-foreground/10 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/25 active:translate-y-0 active:duration-75 sm:px-7 sm:py-6"
       data-umami-event="click-promo-cta"
       data-umami-event-target="hero"
     >
