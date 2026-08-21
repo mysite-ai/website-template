@@ -255,6 +255,7 @@ function Lightbox({
         type="button"
         onClick={onClose}
         aria-label="Close preview"
+        data-umami-event="click-gallery-close"
         className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
       >
         <X size={20} strokeWidth={2} aria-hidden="true" />
@@ -268,6 +269,7 @@ function Lightbox({
             onPrev();
           }}
           aria-label="Previous image"
+          data-umami-event="click-gallery-prev"
           className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 sm:left-6 sm:h-12 sm:w-12"
         >
           <ChevronLeft size={22} strokeWidth={2} aria-hidden="true" />
@@ -282,6 +284,7 @@ function Lightbox({
             onNext();
           }}
           aria-label="Next image"
+          data-umami-event="click-gallery-next"
           className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 sm:right-6 sm:h-12 sm:w-12"
         >
           <ChevronRight size={22} strokeWidth={2} aria-hidden="true" />

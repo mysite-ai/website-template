@@ -74,6 +74,8 @@ const links: Array<{ href: string; label: string }> = [
       href="/"
       class="group flex min-w-0 items-center gap-2.5 rounded-full transition-opacity hover:opacity-80"
       aria-label={displayName}
+      data-umami-event="click-logo"
+      data-umami-event-target="header"
     >
       {navLogoUrl ? (
         /*
@@ -125,6 +127,8 @@ const links: Array<{ href: string; label: string }> = [
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 ]}
                 aria-current={active ? "page" : undefined}
+                data-umami-event="click-nav"
+                data-umami-event-target={link.href}
               >
                 {link.label}
               </a>

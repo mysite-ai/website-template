@@ -11,6 +11,7 @@ import {
 } from "@/lib/attribution/metaPixel";
 import { shareQrImage } from "@/lib/promo/shareQrImage";
 import { formatPhone } from "@/lib/utils";
+import { trackUmami } from "@/lib/analytics/umami";
 import PhoneField from "./PhoneField";
 
 import { Button } from "@/components/ui/button";
@@ -96,6 +97,9 @@ export default function PromoFlow(props: PromoFlowProps) {
       trackMetaEventOnce(`mysite_meta_qr_generated_${result.id}`, () =>
         trackQrGenerated(pixel, qrEventId),
       );
+      // Umami: fire on *success* so the count reflects codes actually
+      // generated (the key /rewards conversion), not just button clicks.
+      trackUmami("qr-generated", { location: brandSlug });
       setStep("revealed");
     }
   };
@@ -109,6 +113,7 @@ export default function PromoFlow(props: PromoFlowProps) {
       trackMetaEventOnce(`mysite_meta_lead_submitted_${user?.id ?? "unknown"}`, () =>
         trackLeadSubmitted(pixel, leadEventId),
       );
+      trackUmami("phone-saved", { location: brandSlug });
       setStep("done");
     }
   };
@@ -187,6 +192,8 @@ export default function PromoFlow(props: PromoFlowProps) {
                 disabled={registering}
                 className="group relative mb-5 grid aspect-square w-60 place-items-center rounded-2xl bg-muted/60 transition-colors hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-progress lg:w-64"
                 aria-label="Reveal your code"
+                data-umami-event="click-reveal-code"
+                data-umami-event-target="promo-page"
               >
                 {/* Blurred QR-ish pattern preview */}
                 <div
@@ -363,6 +370,8 @@ export default function PromoFlow(props: PromoFlowProps) {
                         onClick={() => saveQr(`qr-card-${i}`, reward.description)}
                         className="w-full h-9"
                         variant="outline"
+                        data-umami-event="click-save-qr"
+                        data-umami-event-target="promo-reward-card"
                       >
                         <Share2 size={14} strokeWidth={2} aria-hidden="true" /> Save to photos
                       </Button>
