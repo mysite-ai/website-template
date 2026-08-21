@@ -1,5 +1,6 @@
 ---
-import type { TenantContext, ActionTile } from "@/lib/tenant/types";
+import type { TenantContext, ActionTile, ActionTileType } from "@/lib/tenant/types";
+import { formatPhone } from "@/lib/utils";
 import { TILE_REGISTRY, FALLBACK_ICON, isExternalHref } from "@/lib/action-tiles/registry";
 
 interface Props {
@@ -10,9 +11,8 @@ const { tenant } = Astro.props;
 const { location } = tenant;
 
 /*
- * QuickActions renders the operator-configured `action_tiles` as a
- * Linktree-style stack of simple, full-width buttons below the Hero.
- * Everything is driven from Supabase:
+ * QuickActions renders the operator-configured `action_tiles` row
+ * below the Hero. Everything is driven from Supabase:
  *
  *   template_locations.action_tiles = [
  *     { "type": "directions", "href": "..." },
@@ -50,14 +50,71 @@ function buildFallback(): ActionTile[] {
 
 const tiles: ActionTile[] = location.action_tiles ?? buildFallback();
 
-const prepared = tiles.map((tile, i) => {
+/*
+ * Compute a human-readable sub-label per tile.
+ *
+ * We always show the tile's canonical `label` as the top line (either
+ * the operator's override or the registry default). The sub-line is a
+ * quick "where does this go" hint, distinct from the label:
+ *
+ *   - directions → the city name so the tile reads "Directions / Warsaw"
+ *   - call       → the formatted phone if the href is `tel:`
+ *   - email      → the email address if the href is `mailto:`
+ *   - everything else → the host portion of the URL, which reads well
+ *                       for links like `opentable.com`.
+ *
+ * Never show something that duplicates the top label — if the two
+ * would collide, hide the sub-line.
+ */
+function subLabelFor(tile: ActionTile, topLabel: string): string | null {
+  let candidate: string | null = null;
+  switch (tile.type) {
+    case "directions":
+      candidate = location.city ?? null;
+      break;
+    case "call": {
+      const raw = tile.href.replace(/^tel:/, "");
+      candidate = raw ? formatPhone(raw) : null;
+      break;
+    }
+    case "email":
+      candidate = tile.href.replace(/^mailto:/, "") || null;
+      break;
+    default:
+      try {
+        candidate = new URL(tile.href).hostname.replace(/^www\./, "");
+      } catch {
+        candidate = null;
+      }
+  }
+  if (!candidate) return null;
+  if (candidate.toLowerCase() === topLabel.toLowerCase()) return null;
+  return candidate;
+}
+
+interface Prepared {
+  key: string;
+  type: ActionTileType;
+  label: string;
+  sublabel: string | null;
+  href: string;
+  external: boolean;
+  ariaLabel: string;
+  umamiEvent: string;
+  icon: typeof FALLBACK_ICON;
+}
+
+const prepared: Prepared[] = tiles.map((tile, i) => {
   const def = TILE_REGISTRY[tile.type];
   const label = tile.label?.trim() || def.defaultLabel;
   return {
     key: `${tile.type}-${i}`,
+    type: tile.type,
     label,
+    sublabel: subLabelFor(tile, label),
     href: tile.href,
     external: isExternalHref(tile.href),
+    ariaLabel: label,
     umamiEvent: def.umamiEvent,
     icon: def.icon ?? FALLBACK_ICON,
   };
@@ -66,26 +123,41 @@ const prepared = tiles.map((tile, i) => {
 
 {prepared.length > 0 && (
   <section class="section-well mt-4 lg:mt-5">
-    {/* Linktree / White Bear-style: a narrow column of plain, flat,
-        full-width buttons. Each is a soft-tinted bar with a centered
-        icon + label. No borders, no drop shadows — deliberately simple
-        so the links read as clean, tappable "batons". */}
-    <div class="mx-auto flex max-w-[30rem] flex-col gap-3 lg:max-w-[36rem]">
+    {/* Linktree / White Bear-style: a single narrow column of full-width
+        pill links. Icon + label are centered together as one group so
+        each row reads as a clean, tappable button — the page's primary
+        navigation. Soft card surface, hairline border and a gentle lift
+        on hover keep it feeling premium. */}
+    <div class="mx-auto flex max-w-[30rem] flex-col gap-2.5 lg:max-w-[36rem]">
       {prepared.map((tile) => {
         const Icon = tile.icon;
         return (
           <a
             href={tile.href}
-            aria-label={tile.label}
+            aria-label={tile.ariaLabel}
             data-umami-event={tile.umamiEvent}
             data-umami-event-target="quick-actions"
-            class="flex w-full items-center justify-center gap-2.5 rounded-xl bg-primary/10 px-5 py-4 text-[15px] font-semibold tracking-tight text-foreground transition-colors duration-150 hover:bg-primary/20 active:bg-primary/25"
+            class="group flex w-full items-center justify-center gap-2.5 rounded-2xl border border-foreground/10 bg-card px-5 py-[15px] text-center shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_-16px_rgb(0_0_0/0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/[0.04] hover:shadow-[0_2px_4px_rgb(0_0_0/0.05),0_14px_32px_-16px_rgb(0_0_0/0.35)] active:translate-y-0 active:scale-[0.99]"
             {...(tile.external
               ? { target: "_blank", rel: "noopener noreferrer" }
               : {})}
           >
-            <Icon size={19} strokeWidth={2} aria-hidden="true" class="shrink-0 text-primary" />
-            <span class="truncate">{tile.label}</span>
+            <Icon
+              size={18}
+              strokeWidth={2}
+              aria-hidden="true"
+              class="shrink-0 text-primary transition-transform duration-200 group-hover:scale-110"
+            />
+            <span class="min-w-0">
+              <span class="block truncate text-[15px] font-semibold tracking-tight text-foreground">
+                {tile.label}
+              </span>
+              {tile.sublabel && (
+                <span class="block truncate text-[12px] font-medium text-muted-foreground">
+                  {tile.sublabel}
+                </span>
+              )}
+            </span>
           </a>
         );
       })}
