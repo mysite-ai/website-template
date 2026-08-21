@@ -1,4 +1,4 @@
-import { Gift, Clock } from "lucide-react";
+import { Gift } from "lucide-react";
 import { usePromoCountdown } from "@/lib/promo/usePromoCountdown";
 
 interface Props {
@@ -21,11 +21,12 @@ interface Props {
  * PromoBanner — the primary click-bait CTA at the top of the hero.
  *
  * Design contract:
- * - One headline + one subline. Optionally, one urgency countdown row
+ * - One headline + one subline. Optionally, a live DD:HH:MM:SS countdown
  *   underneath (opt-in per tenant). We initially shipped without a
  *   countdown, but low /rewards conversion (notably Stacks) pointed at a
- *   lack of urgency, so a *bounded, opt-in* countdown was added. It is
- *   OFF by default and only appears when a future deadline is provided.
+ *   lack of urgency, so a *bounded, opt-in* ticking countdown was added.
+ *   It is OFF by default and only appears when a future deadline is
+ *   provided (the seconds visibly tick so the offer feels time-boxed).
  * - Sized to be unmistakably the primary action on a phone: large tap
  *   target, big headline, prominent icon. It should out-weigh the logo.
  * - Uses --primary / --primary-foreground so per-brand overrides
@@ -70,10 +71,11 @@ export default function PromoBanner({ href, headline, subline, deadline }: Props
 }
 
 /**
- * The urgency row. Rendered only when a deadline was passed down. Uses
- * the shared countdown hook (fixed-deadline mode). When the promo has
- * already expired, we render nothing so the banner silently degrades to
- * the plain CTA — no "0 days left" nag.
+ * The urgency countdown. Rendered only when a deadline was passed down.
+ * A real, always-ticking DD:HH:MM:SS clock — the seconds visibly count
+ * down so the promo feels time-boxed and live. Uses the shared countdown
+ * hook (fixed-deadline mode). When the promo has already expired we
+ * render nothing, so the banner silently degrades to the plain CTA.
  */
 function PromoCountdownRow({ deadline }: { deadline: string | Date }) {
   const countdown = usePromoCountdown(deadline);
@@ -82,20 +84,42 @@ function PromoCountdownRow({ deadline }: { deadline: string | Date }) {
 
   const { days, hours, minutes, seconds } = countdown;
 
-  // Copy scales with remaining time: multi-day promos read as "Only N
-  // days left" (calm but present); the final day switches to a live
-  // HH:MM:SS clock to sharpen urgency.
-  const urgencyLabel =
-    days >= 1
-      ? `Only ${days} ${days === 1 ? "day" : "days"} left`
-      : `Ends in ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  const segments: Array<{ value: number; label: string }> = [
+    { value: days, label: days === 1 ? "Day" : "Days" },
+    { value: hours, label: "Hrs" },
+    { value: minutes, label: "Min" },
+    { value: seconds, label: "Sec" },
+  ];
 
   return (
-    <div className="relative mt-3.5 flex items-center gap-2 rounded-xl bg-primary-foreground/12 px-3.5 py-2.5 ring-1 ring-inset ring-primary-foreground/15">
-      <Clock size={15} strokeWidth={2.25} aria-hidden="true" className="shrink-0" />
-      <span className="text-[13px] font-semibold uppercase tracking-[0.06em] tabular-nums sm:text-[13.5px]">
-        {urgencyLabel}
-      </span>
+    <div className="relative mt-4 rounded-xl bg-primary-foreground/10 px-3 py-2.5 ring-1 ring-inset ring-primary-foreground/15 sm:px-3.5">
+      <p className="mb-2 text-center text-[10.5px] font-bold uppercase tracking-[0.16em] text-primary-foreground/75">
+        Hurry — offer ends in
+      </p>
+      <div className="flex items-start justify-center gap-1.5 sm:gap-2">
+        {segments.map((seg, i) => (
+          <div key={seg.label} className="flex items-start gap-1.5 sm:gap-2">
+            <div className="flex w-[46px] flex-col items-center sm:w-[52px]">
+              <div className="grid h-11 w-full place-items-center rounded-lg bg-primary-foreground/15 ring-1 ring-inset ring-primary-foreground/20 sm:h-12">
+                <span className="text-[22px] font-bold leading-none tabular-nums sm:text-[25px]">
+                  {pad(seg.value)}
+                </span>
+              </div>
+              <span className="mt-1 text-[9.5px] font-semibold uppercase tracking-[0.1em] text-primary-foreground/70 sm:text-[10px]">
+                {seg.label}
+              </span>
+            </div>
+            {i < segments.length - 1 && (
+              <span
+                aria-hidden="true"
+                className="pt-2 text-[20px] font-bold leading-none text-primary-foreground/45 sm:pt-2.5 sm:text-[22px]"
+              >
+                :
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
