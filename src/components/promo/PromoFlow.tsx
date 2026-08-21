@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
-import { ArrowLeft, Check, Phone, Share2, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, Clock, Phone, Share2, Sparkles } from "lucide-react";
 import { qrValue, useAttribution, type AttributionLocation } from "@/lib/attribution/useAttribution";
 import {
   getMetaEventId,
@@ -176,7 +176,8 @@ export default function PromoFlow(props: PromoFlowProps) {
               : "Show this QR code at the counter to claim your reward."}
           </p>
           {finePrint && (
-            <p className="fade-rise fade-rise-delay-2 mx-auto mt-3 inline-flex max-w-[26rem] items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[12px] font-medium text-primary">
+            <p className="fade-rise fade-rise-delay-2 mx-auto mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-[14px] font-bold uppercase tracking-[0.03em] text-primary-foreground shadow-sm">
+              <Clock size={16} strokeWidth={2.75} aria-hidden="true" className="shrink-0" />
               {finePrint}
             </p>
           )}

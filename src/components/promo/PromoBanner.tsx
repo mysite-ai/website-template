@@ -1,4 +1,4 @@
-import { Gift, ChevronRight, Hand } from "lucide-react";
+import { Gift, ChevronRight, Hand, Clock } from "lucide-react";
 import { usePromoCountdown } from "@/lib/promo/usePromoCountdown";
 
 interface Props {
@@ -98,9 +98,10 @@ export default function PromoBanner({ href, headline, subline, deadline, finePri
       {deadline != null && <PromoCountdownRow deadline={deadline} />}
 
       {finePrint && (
-        <p className="relative mt-2.5 text-[11px] leading-snug text-primary-foreground/65">
+        <div className="relative mt-3 flex items-center justify-center gap-2 rounded-lg bg-primary-foreground px-3 py-2.5 text-center text-[13.5px] font-bold uppercase tracking-[0.03em] text-primary shadow-sm sm:text-[14px]">
+          <Clock size={16} strokeWidth={2.75} aria-hidden="true" className="shrink-0" />
           {finePrint}
-        </p>
+        </div>
       )}
 
       <style>{`
