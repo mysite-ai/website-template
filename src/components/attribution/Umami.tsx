@@ -2,6 +2,12 @@ import { useEffect } from "react";
 
 interface Props {
   websiteId: string;
+  /**
+   * When true, also load the session-replay recorder. Gated per-tenant
+   * so recordings can be rolled out gradually (off by default). Requires
+   * the "Replays" toggle enabled for this website in the Umami dashboard.
+   */
+  replay?: boolean;
 }
 
 /**
@@ -16,7 +22,7 @@ interface Props {
  *      Umami dashboard; the sample rate / masking are controlled there.
  *      Loading it here is harmless when replays are off server-side.
  */
-export default function Umami({ websiteId }: Props) {
+export default function Umami({ websiteId, replay = false }: Props) {
   useEffect(() => {
     if (!websiteId || typeof document === "undefined") return;
 
@@ -38,11 +44,13 @@ export default function Umami({ websiteId }: Props) {
     }
 
     // Session replay recorder — must load in addition to the tracker.
-    // Config attributes for the recorder: record 70% of sessions, mask
-    // form inputs, cap each replay at 5 min. Loaded via the /stats proxy
-    // (not the raw Umami URL) so it survives ad-blockers, same as the
-    // tracker. Keep the dashboard's Replays sample rate in sync (70%).
-    if (!document.querySelector('script[data-umami="recorder"]')) {
+    // Gated per-tenant via `replay` so recordings only run where we've
+    // opted in (currently Stacks). Config attributes: record 70% of
+    // sessions, mask form inputs, cap each replay at 5 min. Loaded via
+    // the /stats proxy (not the raw Umami URL) so it survives
+    // ad-blockers, same as the tracker. Keep the dashboard's Replays
+    // sample rate in sync (70%).
+    if (replay && !document.querySelector('script[data-umami="recorder"]')) {
       const recorder = document.createElement("script");
       recorder.src = "/stats/recorder.js";
       recorder.async = true;
@@ -55,7 +63,7 @@ export default function Umami({ websiteId }: Props) {
       recorder.dataset.maxDuration = "300000";
       document.head.appendChild(recorder);
     }
-  }, [websiteId]);
+  }, [websiteId, replay]);
 
   return null;
 }

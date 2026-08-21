@@ -136,6 +136,13 @@ export interface TenantLocation {
   promo_fine_print: string | null;
 
   umami_website_id: string | null;
+  /**
+   * Whether Umami session replay (recorder.js) loads for this location.
+   * Gated per-tenant so we can roll recordings out gradually. Requires
+   * `umami_website_id` to be set and the "Replays" toggle enabled in the
+   * Umami dashboard for that website. Off by default.
+   */
+  umami_replay_enabled: boolean;
   meta_pixel_ids: string[];
 
   gallery: GalleryImage[];

@@ -85,6 +85,8 @@ const faviconIsSvg = faviconHref.endsWith(".svg") || faviconHref.startsWith("/fa
     <Footer tenant={tenant} />
 
     {hasPixel && <MetaPixel client:idle location={pixel} />}
-    {hasUmami && <Umami client:idle websiteId={location.umami_website_id!} />}
+    {hasUmami && (
+      <Umami client:idle websiteId={location.umami_website_id!} replay={location.umami_replay_enabled} />
+    )}
   </body>
 </html>

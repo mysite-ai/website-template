@@ -193,6 +193,7 @@ interface LocationJoinRow {
   promo_fine_print_enabled: boolean | null;
   promo_fine_print: string | null;
   umami_website_id: string | null;
+  umami_replay_enabled: boolean | null;
   meta_pixel_ids: string[] | null;
   gallery: unknown;
   menu: unknown;
@@ -244,7 +245,7 @@ export async function resolveTenant(rawHost: string): Promise<TenantContext | nu
           promotion_name_cached, reward_description_cached,
           promo_countdown_enabled, promo_deadline,
           promo_fine_print_enabled, promo_fine_print,
-          umami_website_id, meta_pixel_ids, gallery, menu,
+          umami_website_id, umami_replay_enabled, meta_pixel_ids, gallery, menu,
           google_rating, google_reviews_count, google_place_url,
           brand:template_brands!inner (
             id, org_id, slug, name, logo_url, logo_url_nav, favicon_url, theme, tagline, about_md,
@@ -319,6 +320,7 @@ export async function resolveTenant(rawHost: string): Promise<TenantContext | nu
     promo_fine_print_enabled: data.location.promo_fine_print_enabled ?? false,
     promo_fine_print: data.location.promo_fine_print,
     umami_website_id: data.location.umami_website_id,
+    umami_replay_enabled: data.location.umami_replay_enabled ?? false,
     meta_pixel_ids: data.location.meta_pixel_ids ?? [],
     gallery: coerceGallery(data.location.gallery),
     menu: parseMenu(data.location.menu),
