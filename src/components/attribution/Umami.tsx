@@ -38,6 +38,10 @@ export default function Umami({ websiteId }: Props) {
     }
 
     // Session replay recorder — must load in addition to the tracker.
+    // Config attributes mirror the Umami dashboard defaults (Replays &
+    // Heatmaps): record 15% of sessions, mask form inputs, cap each
+    // replay at 5 min. Loaded via the /stats proxy (not the raw Umami
+    // URL) so it survives ad-blockers, same as the tracker.
     if (!document.querySelector('script[data-umami="recorder"]')) {
       const recorder = document.createElement("script");
       recorder.src = "/stats/recorder.js";
@@ -46,6 +50,9 @@ export default function Umami({ websiteId }: Props) {
       recorder.dataset.umami = "recorder";
       recorder.dataset.websiteId = websiteId;
       recorder.dataset.hostUrl = "/stats";
+      recorder.dataset.sampleRate = "0.15";
+      recorder.dataset.maskLevel = "moderate";
+      recorder.dataset.maxDuration = "300000";
       document.head.appendChild(recorder);
     }
   }, [websiteId]);
