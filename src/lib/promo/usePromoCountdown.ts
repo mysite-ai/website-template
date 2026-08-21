@@ -52,23 +52,43 @@ function calculateCountdown(target: Date): PromoCountdown {
   };
 }
 
-export function usePromoCountdown(): PromoCountdown {
+export function usePromoCountdown(deadline?: Date | string | null): PromoCountdown {
+  // Resolve the target once. An explicit deadline (per-tenant, from the
+  // DB) takes priority; when absent we fall back to the legacy weekly
+  // "next Sunday" cadence so existing callers keep working.
+  const resolveTarget = (): Date => {
+    if (deadline != null) {
+      const d = deadline instanceof Date ? deadline : new Date(deadline);
+      if (!Number.isNaN(d.getTime())) return d;
+    }
+    return getNextSundayPromoEnd();
+  };
+
   const [countdown, setCountdown] = useState(() =>
-    calculateCountdown(getNextSundayPromoEnd()),
+    calculateCountdown(resolveTarget()),
   );
 
+  const deadlineKey = deadline instanceof Date ? deadline.getTime() : deadline ?? null;
+
   useEffect(() => {
+    // Re-seed immediately when the deadline input changes.
+    setCountdown(calculateCountdown(resolveTarget()));
+
     const id = window.setInterval(() => {
       setCountdown((current) => {
+        // With an explicit deadline we never roll over — an expired
+        // fixed promo just stays expired. Only the legacy Sunday mode
+        // rolls to the following week.
         const target =
-          current.target.getTime() <= Date.now()
+          deadline == null && current.target.getTime() <= Date.now()
             ? getNextSundayPromoEnd()
             : current.target;
         return calculateCountdown(target);
       });
     }, 1000);
     return () => window.clearInterval(id);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deadlineKey]);
 
   return countdown;
 }

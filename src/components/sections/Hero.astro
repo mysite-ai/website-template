@@ -32,8 +32,8 @@ const ratingHref = location.google_place_url;
  * tenant leaves it NULL and inherits the standard.
  *
  * Standard (component defaults, used when null):
- *   - Desktop: 200 px max-height
- *   - Mobile:  160 px (auto-scaled 80%)
+ *   - Desktop: 176 px max-height
+ *   - Mobile:  141 px (auto-scaled 80%)
  *
  * `object-contain` on the img preserves aspect ratio; wide wordmarks
  * end up shorter than max-height, tall marks fill it. The natural
@@ -41,8 +41,22 @@ const ratingHref = location.google_place_url;
  * files that were sloppily left with transparent side-padding will
  * look small (nudge the operator to re-crop, not to bump a column).
  */
-const logoMaxHeightDesktop = brand.logo_hero_max_height ?? 200;
+const logoMaxHeightDesktop = brand.logo_hero_max_height ?? 176;
 const logoMaxHeightMobile = Math.round(logoMaxHeightDesktop * 0.8);
+
+/*
+ * Promo urgency countdown. Opt-in per location: only pass a deadline
+ * down to PromoBanner when the operator enabled the countdown AND the
+ * deadline is still in the future. Anything else (disabled, null, or
+ * already-past deadline) means "no countdown" — the banner degrades to
+ * the plain CTA. Off for every tenant by default (see migration 030).
+ */
+const promoDeadline =
+  location.promo_countdown_enabled &&
+  location.promo_deadline &&
+  new Date(location.promo_deadline).getTime() > Date.now()
+    ? location.promo_deadline
+    : null;
 ---
 
 {brand.logo_url && <link rel="preload" as="image" href={brand.logo_url} />}
@@ -145,6 +159,7 @@ const logoMaxHeightMobile = Math.round(logoMaxHeightDesktop * 0.8);
           href="/rewards"
           headline={location.reward_description_cached ?? location.promotion_name_cached ?? "Get your reward"}
           subline="Tap to get your QR code"
+          deadline={promoDeadline}
         />
       </div>
     )}

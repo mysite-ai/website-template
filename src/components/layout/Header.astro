@@ -34,14 +34,14 @@ const navLogoUrl = brand.logo_url_nav ?? brand.logo_url;
  * standard.
  *
  * Standard (component defaults, used when null):
- *   - Desktop: 56 px logo height
- *   - Mobile:  48 px (auto-scaled 85%)
+ *   - Desktop: 48 px logo height
+ *   - Mobile:  41 px (auto-scaled 85%)
  *
  * The header row height auto-fits: logo height + 32 desktop / +24
  * mobile of vertical breathing room. Minimums keep the nav clickable
  * on tenants with very small logos.
  */
-const logoHeightDesktop = brand.logo_header_height ?? 56;
+const logoHeightDesktop = brand.logo_header_height ?? 48;
 const logoHeightMobile = Math.round(logoHeightDesktop * 0.85);
 const headerHeightDesktop = Math.max(72, logoHeightDesktop + 32);
 const headerHeightMobile = Math.max(64, logoHeightMobile + 24);

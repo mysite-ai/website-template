@@ -116,6 +116,17 @@ export interface TenantLocation {
   promotion_name_cached: string | null;
   reward_description_cached: string | null;
 
+  /**
+   * Urgency countdown for the hero PromoBanner. When
+   * `promo_countdown_enabled` is true AND `promo_deadline` is a future
+   * date, the banner shows a live "Only N days left" counter. Both are
+   * per-location so multi-location tenants can run different windows.
+   * Off for every tenant by default (see migration 030).
+   */
+  promo_countdown_enabled: boolean;
+  /** ISO timestamp for when the promotion ends. Null = no countdown. */
+  promo_deadline: string | null;
+
   umami_website_id: string | null;
   meta_pixel_ids: string[];
 
