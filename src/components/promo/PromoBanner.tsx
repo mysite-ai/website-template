@@ -1,4 +1,4 @@
-import { Gift } from "lucide-react";
+import { Gift, ChevronRight, Hand } from "lucide-react";
 import { usePromoCountdown } from "@/lib/promo/usePromoCountdown";
 
 interface Props {
@@ -36,6 +36,10 @@ interface Props {
  *   provided (the seconds visibly tick so the offer feels time-boxed).
  * - Sized to be unmistakably the primary action on a phone: large tap
  *   target, big headline, prominent icon. It should out-weigh the logo.
+ * - Screams "tap me": an always-nudging arrow chip on the right plus an
+ *   explicit "Tap here to get your QR code" instruction bar, because
+ *   users were not realizing the banner is the button to generate the
+ *   code they later show at the counter.
  * - Optionally, a small muted "fine print" line at the very bottom for
  *   conditions like "Valid after 2 PM only" (opt-in per tenant).
  * - Uses --primary / --primary-foreground so per-brand overrides
@@ -72,6 +76,23 @@ export default function PromoBanner({ href, headline, subline, deadline, finePri
             {subline}
           </p>
         </div>
+
+        {/* Big, animated "tap here" arrow. The single strongest signal
+         * that this whole banner is the button — it nudges left-right
+         * forever to pull the eye and read as clearly interactive. */}
+        <span
+          aria-hidden="true"
+          className="promo-cta-arrow grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-foreground text-primary shadow-md ring-1 ring-inset ring-primary-foreground/20"
+        >
+          <ChevronRight size={22} strokeWidth={2.75} />
+        </span>
+      </div>
+
+      {/* Explicit instruction bar — spells out step 1 in plain words for
+       * users who won't infer that the banner itself is the button. */}
+      <div className="relative mt-3 flex items-center justify-center gap-1.5 rounded-lg bg-primary-foreground/15 px-3 py-2 text-center text-[12.5px] font-semibold uppercase tracking-[0.04em] text-primary-foreground">
+        <Hand size={14} strokeWidth={2.5} aria-hidden="true" className="shrink-0 -rotate-12" />
+        Tap here to get your QR code
       </div>
 
       {deadline != null && <PromoCountdownRow deadline={deadline} />}
@@ -81,6 +102,18 @@ export default function PromoBanner({ href, headline, subline, deadline, finePri
           {finePrint}
         </p>
       )}
+
+      <style>{`
+        @keyframes promo-cta-nudge {
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(4px); }
+        }
+        .promo-cta-arrow { animation: promo-cta-nudge 1s ease-in-out infinite; }
+        .group:hover .promo-cta-arrow { transform: translateX(2px); }
+        @media (prefers-reduced-motion: reduce) {
+          .promo-cta-arrow { animation: none; }
+        }
+      `}</style>
     </a>
   );
 }
