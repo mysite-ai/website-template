@@ -32,8 +32,12 @@ const ratingHref = location.google_place_url;
  * tenant leaves it NULL and inherits the standard.
  *
  * Standard (component defaults, used when null):
- *   - Desktop: 176 px max-height
- *   - Mobile:  141 px (auto-scaled 80%)
+ *   - Desktop: 104 px max-height
+ *   - Mobile:  83 px (auto-scaled 80%)
+ *
+ * Deliberately small: the hero's job is to drive taps on the promo CTA
+ * and the action buttons, not to be a giant logo wall. The mark is a
+ * quick brand signal above the name; the actions are the hierarchy.
  *
  * `object-contain` on the img preserves aspect ratio; wide wordmarks
  * end up shorter than max-height, tall marks fill it. The natural
@@ -41,7 +45,7 @@ const ratingHref = location.google_place_url;
  * files that were sloppily left with transparent side-padding will
  * look small (nudge the operator to re-crop, not to bump a column).
  */
-const logoMaxHeightDesktop = brand.logo_hero_max_height ?? 176;
+const logoMaxHeightDesktop = brand.logo_hero_max_height ?? 104;
 const logoMaxHeightMobile = Math.round(logoMaxHeightDesktop * 0.8);
 
 /*
@@ -65,7 +69,7 @@ const promoDeadline =
     canvas that makes the page feel like a real landing page rather than a
     phone screen dropped into whitespace. */}
 <section
-  class="relative overflow-hidden pb-6 pt-10 sm:pt-12 lg:pt-20 lg:pb-10"
+  class="relative overflow-hidden pb-6 pt-7 sm:pt-8 lg:pb-10 lg:pt-12"
   style="background: radial-gradient(60% 65% at 50% 0%, color-mix(in oklab, var(--primary) 8%, transparent) 0%, transparent 70%), linear-gradient(180deg, color-mix(in oklab, var(--primary) 3%, var(--background)) 0%, var(--background) 100%);"
 >
   <div class="section-well">
@@ -74,13 +78,13 @@ const promoDeadline =
         <img
           src={brand.logo_url}
           alt={brandName}
-          class="hero-logo fade-rise mx-auto mb-6 w-auto max-w-[85%] object-contain lg:max-w-[75%]"
+          class="hero-logo fade-rise mx-auto mb-4 w-auto max-w-[60%] object-contain lg:max-w-[45%]"
           style={`max-height:${logoMaxHeightMobile}px;--hero-logo-max-h-desktop:${logoMaxHeightDesktop}px`}
           fetchpriority="high"
           decoding="async"
         />
       ) : (
-        <div class="fade-rise mx-auto mb-6 grid h-24 w-24 place-items-center rounded-3xl bg-muted text-3xl font-semibold text-foreground/70 ring-1 ring-foreground/10">
+        <div class="fade-rise mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-muted text-2xl font-semibold text-foreground/70 ring-1 ring-foreground/10">
           {brandName.charAt(0)}
         </div>
       )}
