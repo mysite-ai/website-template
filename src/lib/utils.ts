@@ -27,3 +27,28 @@ export function formatPhone(raw: string | null | undefined): string {
 export function stripSlash(value: string): string {
   return value.replace(/\/$/, "");
 }
+
+/**
+ * Append MySite attribution UTMs to an outbound link to the tenant's own
+ * ("regular") website. Lets the client see in their own Google Analytics
+ * that the traffic was sent from their MySite.ai site.
+ *
+ *   utm_source   = mysite.ai
+ *   utm_medium   = referral
+ *   utm_campaign = <the MySite hostname that sent them>, e.g.
+ *                  "lindleypet.mysite.social"
+ *
+ * Existing UTM params on the stored URL are overwritten so the source is
+ * unambiguous. Falls back to the raw string if it isn't a valid URL.
+ */
+export function withMysiteUtms(rawUrl: string, campaign?: string | null): string {
+  try {
+    const url = new URL(rawUrl);
+    url.searchParams.set("utm_source", "mysite.ai");
+    url.searchParams.set("utm_medium", "referral");
+    if (campaign) url.searchParams.set("utm_campaign", campaign);
+    return url.toString();
+  } catch {
+    return rawUrl;
+  }
+}

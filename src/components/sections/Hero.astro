@@ -1,7 +1,8 @@
 ---
 import type { TenantContext } from "@/lib/tenant/types";
 import PromoBanner from "@/components/promo/PromoBanner.tsx";
-import { Star } from "lucide-react";
+import { Star, Globe } from "lucide-react";
+import { withMysiteUtms } from "@/lib/utils";
 
 interface Props {
   tenant: TenantContext;
@@ -71,6 +72,16 @@ const promoFinePrint =
   location.promo_fine_print_enabled && location.promo_fine_print?.trim()
     ? location.promo_fine_print.trim()
     : null;
+
+/*
+ * Optional "regular website" main button. Some tenants keep their own
+ * site and we proxy it, so we surface a prominent button that links out
+ * to their real domain — always tagged with MySite UTMs so the client
+ * can see the referral in their own analytics. Hidden when unset.
+ */
+const websiteHref = location.website_url?.trim()
+  ? withMysiteUtms(location.website_url.trim(), tenant.primaryHostname)
+  : null;
 ---
 
 {brand.logo_url && <link rel="preload" as="image" href={brand.logo_url} />}
@@ -176,6 +187,22 @@ const promoFinePrint =
           deadline={promoDeadline}
           finePrint={promoFinePrint}
         />
+      </div>
+    )}
+
+    {websiteHref && (
+      <div class="fade-rise fade-rise-delay-3 mx-auto mt-6 w-full lg:mt-8">
+        <a
+          href={websiteHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="group flex w-full items-center justify-center gap-2.5 rounded-2xl bg-primary px-6 py-4 text-[16px] font-semibold text-primary-foreground shadow-lg shadow-primary/20 ring-1 ring-inset ring-primary-foreground/10 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/25 active:translate-y-0"
+          data-umami-event="click-website"
+          data-umami-event-target="hero"
+        >
+          <Globe size={20} strokeWidth={2} aria-hidden="true" className="shrink-0" />
+          Visit our website
+        </a>
       </div>
     )}
   </div>

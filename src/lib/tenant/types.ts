@@ -98,6 +98,14 @@ export interface TenantLocation {
   instagram_url: string | null;
   facebook_url: string | null;
 
+  /**
+   * The tenant's own ("regular") website — their real domain, shown as a
+   * prominent main button. Optional: most MySite sites are the primary
+   * web presence, but some clients keep their own site and we proxy, so
+   * we link out to it (with MySite UTMs) when this is set. Null = hidden.
+   */
+  website_url: string | null;
+
   delivery: DeliveryLink[];
 
   /**

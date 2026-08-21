@@ -180,6 +180,7 @@ interface LocationJoinRow {
   maps_search_query: string | null;
   instagram_url: string | null;
   facebook_url: string | null;
+  website_url: string | null;
   delivery: unknown;
   action_tiles: unknown;
   attribution_promotion_id: string | null;
@@ -239,7 +240,7 @@ export async function resolveTenant(rawHost: string): Promise<TenantContext | nu
           latitude, longitude, phone, email,
           weekday_hours, weekend_hours,
           maps_embed_url, maps_search_query,
-          instagram_url, facebook_url, delivery, action_tiles,
+          instagram_url, facebook_url, website_url, delivery, action_tiles,
           attribution_promotion_id, attribution_campaign_id,
           attribution_org_id, attribution_location_id,
           promotion_name_cached, reward_description_cached,
@@ -307,6 +308,7 @@ export async function resolveTenant(rawHost: string): Promise<TenantContext | nu
     maps_search_query: data.location.maps_search_query,
     instagram_url: data.location.instagram_url,
     facebook_url: data.location.facebook_url,
+    website_url: data.location.website_url,
     delivery: coerceDelivery(data.location.delivery),
     action_tiles: coerceActionTiles(data.location.action_tiles),
     attribution_promotion_id: data.location.attribution_promotion_id,
