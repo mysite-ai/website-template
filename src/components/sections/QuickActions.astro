@@ -122,13 +122,12 @@ const prepared: Prepared[] = tiles.map((tile, i) => {
 ---
 
 {prepared.length > 0 && (
-  <section class="section-well mt-4 lg:mt-5">
-    {/* Linktree / White Bear-style: a single narrow column of full-width
-        pill links. Icon + label are centered together as one group so
-        each row reads as a clean, tappable button — the page's primary
-        navigation. Soft card surface, hairline border and a gentle lift
-        on hover keep it feeling premium. */}
-    <div class="mx-auto flex max-w-[30rem] flex-col gap-2.5 lg:max-w-[36rem]">
+  <section class="section-well mt-5 lg:mt-6">
+    {/* Linktree-style link list. Full-width bars that span the whole
+        content well (not a cramped narrow column), generously spaced so
+        each one reads as a distinct, tappable button. Soft card surface,
+        visible border and a gentle lift on hover keep it noticeable. */}
+    <div class="flex w-full flex-col gap-3.5">
       {prepared.map((tile) => {
         const Icon = tile.icon;
         return (
@@ -137,7 +136,7 @@ const prepared: Prepared[] = tiles.map((tile, i) => {
             aria-label={tile.ariaLabel}
             data-umami-event={tile.umamiEvent}
             data-umami-event-target="quick-actions"
-            class="group flex w-full items-center justify-center gap-2.5 rounded-2xl border border-foreground/10 bg-card px-5 py-[15px] text-center shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_-16px_rgb(0_0_0/0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/[0.04] hover:shadow-[0_2px_4px_rgb(0_0_0/0.05),0_14px_32px_-16px_rgb(0_0_0/0.35)] active:translate-y-0 active:scale-[0.99]"
+            class="group flex w-full items-center justify-center gap-2.5 rounded-2xl border border-foreground/15 bg-card px-5 py-3 text-center shadow-[0_1px_2px_rgb(0_0_0/0.05),0_6px_18px_-12px_rgb(0_0_0/0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/[0.05] hover:shadow-[0_2px_6px_rgb(0_0_0/0.07),0_12px_28px_-14px_rgb(0_0_0/0.4)] active:translate-y-0 active:scale-[0.99]"
             {...(tile.external
               ? { target: "_blank", rel: "noopener noreferrer" }
               : {})}
