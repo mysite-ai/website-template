@@ -5,27 +5,49 @@ interface Props {
 }
 
 /**
- * Loads the Umami analytics script from the same-origin `/stats/` proxy
- * so it's not blocked by ad-blockers. The rewrite is configured in
- * `vercel.json`.
+ * Loads Umami from the same-origin `/stats/` proxy (configured in
+ * `vercel.json`) so it isn't blocked by ad-blockers.
+ *
+ * Two scripts, same `data-website-id`:
+ *   1. `script.js`   — the core tracker (pageviews + `data-umami-event`s).
+ *   2. `recorder.js` — session replay (rrweb), added *alongside* the
+ *      tracker (it needs `window.umami.getSession()` from it). Requires
+ *      Umami v3.1.0+ and the per-website "Replays" toggle enabled in the
+ *      Umami dashboard; the sample rate / masking are controlled there.
+ *      Loading it here is harmless when replays are off server-side.
  */
 export default function Umami({ websiteId }: Props) {
   useEffect(() => {
     if (!websiteId || typeof document === "undefined") return;
-    if (document.querySelector('script[data-website-id]')) return;
 
-    const script = document.createElement("script");
-    script.src = "/stats/script.js";
-    script.async = true;
-    script.defer = true;
-    script.dataset.websiteId = websiteId;
-    script.dataset.hostUrl = "/stats";
-    // NOTE: we intentionally do NOT set data-do-not-track="true". With it
-    // on, Umami skips any visitor whose browser sends the Do-Not-Track
-    // signal — silently under-counting real traffic and clicks. Since
-    // this is first-party, cookieless, same-origin-proxied analytics, we
-    // track everyone so the visit/click numbers are complete.
-    document.head.appendChild(script);
+    // Core tracker.
+    if (!document.querySelector('script[data-umami="tracker"]')) {
+      const tracker = document.createElement("script");
+      tracker.src = "/stats/script.js";
+      tracker.async = true;
+      tracker.defer = true;
+      tracker.dataset.umami = "tracker";
+      tracker.dataset.websiteId = websiteId;
+      tracker.dataset.hostUrl = "/stats";
+      // NOTE: we intentionally do NOT set data-do-not-track="true". With
+      // it on, Umami skips any visitor whose browser sends the
+      // Do-Not-Track signal — silently under-counting real traffic and
+      // clicks. This is first-party, cookieless, same-origin analytics,
+      // so we track everyone for complete numbers.
+      document.head.appendChild(tracker);
+    }
+
+    // Session replay recorder — must load in addition to the tracker.
+    if (!document.querySelector('script[data-umami="recorder"]')) {
+      const recorder = document.createElement("script");
+      recorder.src = "/stats/recorder.js";
+      recorder.async = true;
+      recorder.defer = true;
+      recorder.dataset.umami = "recorder";
+      recorder.dataset.websiteId = websiteId;
+      recorder.dataset.hostUrl = "/stats";
+      document.head.appendChild(recorder);
+    }
   }, [websiteId]);
 
   return null;
