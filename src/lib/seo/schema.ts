@@ -123,6 +123,6 @@ function buildJsonLd(
     address,
     geo,
     sameAs: sameAs.length > 0 ? sameAs : undefined,
-    hasMenu: `${baseUrl(primaryHostname)}/menu`,
+    hasMenu: location.menu ? `${baseUrl(primaryHostname)}/menu` : undefined,
   };
 }
