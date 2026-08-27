@@ -6,6 +6,8 @@ import Header from "@/components/layout/Header.astro";
 import Footer from "@/components/layout/Footer.astro";
 import MetaPixel from "@/components/attribution/MetaPixel.tsx";
 import Umami from "@/components/attribution/Umami.tsx";
+import OpenTableTagger from "@/components/attribution/OpenTableTagger.astro";
+import { hasOpenTableLink } from "@/lib/opentable/tagging";
 import type { LocationSeoResult } from "@/lib/seo/schema";
 
 interface Props {
@@ -31,6 +33,9 @@ const pixel = {
 
 const hasPixel = location.meta_pixel_ids && location.meta_pixel_ids.length > 0;
 const hasUmami = !!location.umami_website_id;
+// Derived from tenant data only (never from the request URL), so it stays
+// safe under the CDN cache-control set in index.astro / menu.astro.
+const hasOpenTable = hasOpenTableLink(location);
 
 // Favicon resolution cascade:
 //   1. brand.favicon_url         — explicit favicon uploaded by the operator
@@ -88,5 +93,6 @@ const faviconIsSvg = faviconHref.endsWith(".svg") || faviconHref.startsWith("/fa
     {hasUmami && (
       <Umami client:idle websiteId={location.umami_website_id!} replay={location.umami_replay_enabled} />
     )}
+    {hasOpenTable && <OpenTableTagger />}
   </body>
 </html>

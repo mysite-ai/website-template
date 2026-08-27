@@ -1,0 +1,71 @@
+---
+/**
+ * Applies OpenTable marketing-tracking params to every outbound OpenTable
+ * link on the page.
+ *
+ * Rendered only when the tenant actually has an OpenTable link (gated by
+ * `hasOpenTableLink` in BaseLayout), so most tenants ship no extra JS.
+ *
+ * ── Why a plain <script> and not a React island ─────────────────────────
+ * Its siblings (`Umami.tsx`, `MetaPixel.tsx`) are `client:idle` islands
+ * because they load third-party SDKs. This has no UI and no props, so a
+ * React runtime would be pure overhead for tenants with no other island —
+ * and a module script runs earlier than `client:idle`, closing the window
+ * where a fast clicker could hit an untagged link.
+ *
+ * ── Why rewrite href instead of intercepting clicks ─────────────────────
+ * Rewriting the real `href` also covers cmd/ctrl+click, middle-click
+ * (which fires no `click` event at all), "Copy link address", and the URL
+ * preview in the status bar. A click handler would silently drop all of
+ * those — and middle-click on a reservation link is common enough to matter.
+ *
+ * Detection is by hostname, so QuickActions, Delivery, Hero and any future
+ * component are covered without touching their code or adding tile types.
+ */
+---
+
+<script>
+  import { getAttributionParam, persistUtmParams } from "@/lib/attribution/tracking";
+  import { resolveOtCampaign, tagOpenTableUrl } from "@/lib/opentable/tagging";
+
+  const TAGGED_FLAG = "otTagged";
+
+  function tagAll() {
+    // Query param first, sessionStorage second — a visitor who landed on
+    // `/?c=…` and then navigated to `/menu` still resolves the campaign.
+    // Normally seeded by the useAttribution island; called here too so pages
+    // without that island (i.e. everything except /rewards) also persist it.
+    persistUtmParams();
+    const campaign = resolveOtCampaign(getAttributionParam("c"));
+
+    for (const anchor of document.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+      if (anchor.dataset[TAGGED_FLAG]) continue;
+
+      const tagged = tagOpenTableUrl(anchor.href, campaign);
+      // `tagOpenTableUrl` returns the input untouched for non-OpenTable
+      // hosts, which is how we skip the other ~15 links on the page.
+      if (tagged === anchor.href) continue;
+
+      anchor.href = tagged;
+      anchor.dataset[TAGGED_FLAG] = "1";
+      // Rides the repo's declarative Umami convention: `data-umami-event-*`
+      // becomes a field on the event payload, so `click-book` carries the
+      // campaign with no event plumbing. Gives us a first-party count to
+      // reconcile against OpenTable's own report.
+      anchor.dataset.umamiEventOtCampaign = campaign;
+    }
+  }
+
+  tagAll();
+
+  // React islands hydrate after this script runs (`client:idle` /
+  // `client:visible`) and can replace anchors, dropping the flag with them.
+  // Re-running on subtree changes keeps late-rendered links covered; the
+  // flag check keeps it idempotent and cheap.
+  if (typeof MutationObserver !== "undefined") {
+    new MutationObserver(() => tagAll()).observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+  }
+</script>

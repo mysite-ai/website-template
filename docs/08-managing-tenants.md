@@ -384,6 +384,22 @@ update template_locations
 
 When `action_tiles` is `NULL`, the QuickActions section auto-derives Directions + first Order provider from `maps_search_query` + `delivery[0]`. This matches the pre-migration-028 behaviour, so tenants we haven't manually configured yet still get a sensible row.
 
+### OpenTable links — nothing to configure
+
+If a tile, a delivery entry, or `website_url` points at an OpenTable domain, the site **automatically** appends OpenTable's marketing-tracking params to that link at click time:
+
+- `ot_source=mysite_ai` — appears as **RestRef** in the tenant's OpenTable reservation reports
+- `ot_campaign=pk<N>` — appears as **Rest Campaign Name**, carrying the paid-opportunity key when the visitor arrived from a MySite ad; `mysite` otherwise
+
+So the tenant can see in their own OpenTable export which reservations came from us, and from which campaign. There is **no column to set and no tile type to pick** — detection is by hostname, so `{"type":"book","href":"https://www.opentable.com/r/my-bistro"}` is all it takes. Tenants without an OpenTable link ship no extra JavaScript.
+
+Two things to get right when configuring a tenant:
+
+1. **Paste the direct OpenTable URL.** A shortener (`bit.ly/...`) or a link to the tenant's own redirect page hides the OpenTable hostname, so we can't tag it and the reservation shows up unattributed in their reports.
+2. **Don't bother generating a tracking link in the OpenTable dashboard.** If you paste one, its `ot_source` / `ot_campaign` are overwritten — every MySite-sent reservation must report under the same source or the numbers stop being comparable across tenants. Other params on the link (`rid`, `p`, …) are preserved.
+
+Technical detail and the reasoning behind the client-side implementation: [docs/04-attribution-integration.md](./04-attribution-integration.md#opentable-outbound-tagging).
+
 **To disable the tiles entirely** for a tenant, set `action_tiles = '[]'::jsonb` — the empty array explicitly means "render nothing." (Distinguishing `NULL` = "use defaults" from `[]` = "no tiles" is the only reason the renderer treats them differently.)
 
 ## Turn loyalty on or off

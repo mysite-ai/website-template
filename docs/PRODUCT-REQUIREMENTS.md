@@ -211,6 +211,7 @@ Minimal centered card. `noindex`. Same visual system, no per-tenant customizatio
 
 - **Meta Pixel** — optional per location (via `meta_pixel_ids` array). Fires `PageView`, `QRGenerated`, `Lead`. See [src/lib/attribution/metaPixel.ts](../src/lib/attribution/metaPixel.ts).
 - **Umami** — optional per location (via `umami_website_id`). Self-hosted, proxied through `/stats/*` (see [vercel.json](../vercel.json)). Data-attribute-driven event capture (`data-umami-event`, `data-umami-event-target`) on every CTA in the codebase.
+- **OpenTable outbound tagging** — automatic (no config) whenever a tenant has an OpenTable link. Stamps `ot_source=mysite_ai` + `ot_campaign=pk<N>` so reservations are attributable to a MySite campaign inside OpenTable's own reports. See [src/lib/opentable/tagging.ts](../src/lib/opentable/tagging.ts) and [docs/04](./04-attribution-integration.md#opentable-outbound-tagging).
 
 ### 6.4 Internationalization
 
@@ -249,7 +250,7 @@ If any of these steps takes more than a click or an SQL insert, treat it as a pl
 Things that look like they should be here but aren't — with the reasoning, so we don't accidentally add them under scope creep.
 
 - **A CMS admin UI.** Operators change tenant data directly in Supabase Studio. No custom dashboard. Rationale: Studio is already a decent editor, and every client we onboard is manually vetted anyway. Building a CMS costs more than the value it adds.
-- **Reservations / booking.** Restaurants that need reservations use a third-party (OpenTable, Resy, etc.) as one of the delivery-provider tiles. The platform is a landing page, not a booking system.
+- **Reservations / booking.** Restaurants that need reservations use a third-party (OpenTable, Resy, etc.) as one of the delivery-provider tiles. The platform is a landing page, not a booking system. We do, however, *tag* outbound OpenTable links so the reservation is attributable back to a MySite campaign — see 6.3. Tagging a link out is not the same as owning the booking flow; embedding an OpenTable widget/iframe stays out of scope.
 - **Multi-language rendering.** Each tenant picks one language for their copy at seed time. No per-request language switcher, no `hreflang` alternates. If a client needs bilingual, that's two brands with two hostnames.
 - **User accounts on the customer side.** The loyalty flow uses phone number as an implicit account (no login). Rationale: friction kills conversion on paid ad traffic.
 - **A shopping cart.** Ordering happens off-site via the delivery-provider tile links (Wolt, Uber Eats, etc.). We are not a POS.

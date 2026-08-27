@@ -76,6 +76,7 @@ This is a Lighthouse-mobile-95+ setup out of the box: three routes, one interact
 | Attribution client wrapper         | `src/lib/attribution/client.ts`                  |
 | Attribution React hook             | `src/lib/attribution/useAttribution.ts`          |
 | Meta Pixel helper                  | `src/lib/attribution/metaPixel.ts`               |
+| OpenTable outbound tagging         | `src/lib/opentable/tagging.ts`                   |
 | SEO helper (JSON-LD, canonical)    | `src/lib/seo/schema.ts`                          |
 
 ## What's NOT here
