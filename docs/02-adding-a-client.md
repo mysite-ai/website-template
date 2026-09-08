@@ -9,6 +9,8 @@ Before you start, verify:
 
 > Need to *change* things on an existing tenant (colors, menu, images, promo)? That's `docs/08-managing-tenants.md`. This doc is only about **onboarding a new tenant**.
 
+> ⚠️ **`meta_pixel_ids` is a decision, not a copy-paste.** We run two Meta datasets and the wrong one pollutes the other's audiences. Ask the client which category applies before you write the column — see [Which Meta Pixel?](#which-meta-pixel) below.
+
 ## Pattern A — Single-location (e.g. Sawa Sushi)
 
 For single-location clients `brand.slug === location.slug` so the two concepts collapse. The hostname is `<slug>.mysite.social`.
@@ -61,7 +63,7 @@ insert into template_locations (
   '<campaign_uuid_from_attribution>',
   '<org_uuid_from_attribution>',
   '<location_uuid_from_attribution>',  -- ← used for CORS in step 2
-  '01912345abcd', ARRAY['<pixel_id>']::text[],
+  '01912345abcd', ARRAY['<pixel_id>']::text[],  -- gastro: 849479710958676 · retail: 4347830552199286 — ask the client, see "Which Meta Pixel?"
   '[{"src":"https://.../hero.jpg","alt":"Sawa Sushi"}]'::jsonb,
   '{"version":1,"currency_default":"USD","categories":[]}'::jsonb  -- see 05-supabase-schema.md
 )
@@ -135,6 +137,40 @@ insert into location_origins (location_id, origin) values
 
 - `azusa.yourpie.mysite.social` — covered by `*.*.mysite.social` IF Vercel-issued TLS supports a two-label wildcard on the same project. If not, restructure to flat `azusa-yourpie.mysite.social` (single-level wildcard, no code change needed).
 - `azusa.yourpie.com` — add to Vercel project, client CNAMEs.
+
+## Which Meta Pixel?
+
+`meta_pixel_ids` is the one column on a new tenant you should **never** fill in by reflex. We run two separate Meta datasets under the Mysite AI business, and a tenant on the wrong one quietly contaminates the other's retargeting audiences and lookalike seeds.
+
+| Dataset | ID | Use for |
+| --- | --- | --- |
+| `RestaurantsWebPixel` | `849479710958676` | Gastro — restaurants, cafés, bars, pizzerias, food trucks, sushi, catering |
+| `RetailWebPixel` | `4347830552199286` | Brick-and-mortar retail / services **outside** gastro — pet stores, print shops, salons, bike shops |
+
+**Ask the client which category they are before writing the column.** Don't infer it from the business name: "Guido's Pizza & Pasta" is obvious, but "Lindley" (pet store) and "Shaddai" (print shop) are not — both were onboarded onto the restaurant pixel by mistake and had to be corrected in migration `043`.
+
+How to decide:
+
+- **Retail** — the guest buys a *product* and leaves. No table, no menu, no service window.
+- **Gastro** — the guest consumes prepared food, on premises or via delivery/pickup.
+- **Edge cases** (bakery with seating, brewery taproom, deli): gastro if there's a menu of prepared items. Ask if unsure.
+
+```sql
+-- Gastro (most tenants)
+..., array['849479710958676']::text[], ...
+
+-- Retail
+..., array['4347830552199286']::text[], ...
+
+-- Client doesn't run Meta ads / site not published yet
+..., '{}'::text[], ...
+```
+
+`'{}'` is a fully supported state, not an oversight — `BaseLayout` skips the pixel island entirely, so the tenant ships no `fbevents.js`. Around 50 inactive tenants sit like this on purpose.
+
+**Replace, don't append.** Keeping the two signal pools separate is the entire reason the second dataset exists. Listing both IDs works (`MetaPixel.tsx` inits every entry) but is an explicit exception — flag it to the client rather than doing it silently.
+
+Agent-facing version of this rule: [.cursor/rules/meta-pixel-selection.mdc](../.cursor/rules/meta-pixel-selection.mdc).
 
 ## Adding an alias domain later
 

@@ -413,6 +413,33 @@ Technical detail and the reasoning behind the client-side implementation: [docs/
 
 **To disable the tiles entirely** for a tenant, set `action_tiles = '[]'::jsonb` — the empty array explicitly means "render nothing." (Distinguishing `NULL` = "use defaults" from `[]` = "no tiles" is the only reason the renderer treats them differently.)
 
+## Change the Meta Pixel
+
+Two datasets live under the Mysite AI business. Picking the wrong one mixes gastro and retail traffic in the same audiences, which quietly degrades retargeting and lookalikes on **both**.
+
+| Dataset | ID | Use for |
+| --- | --- | --- |
+| `RestaurantsWebPixel` | `849479710958676` | Gastro — restaurants, cafés, bars, pizzerias, food trucks, sushi, catering |
+| `RetailWebPixel` | `4347830552199286` | Brick-and-mortar retail / services **outside** gastro — pet stores, print shops, salons, bike shops |
+
+```sql
+-- Move a tenant to the retail pixel
+update template_locations l
+   set meta_pixel_ids = array['4347830552199286']::text[]
+  from template_brands b
+ where l.brand_id = b.id
+   and b.slug = 'my-pet-store';
+
+-- Turn the pixel off entirely (no fbevents.js is shipped at all)
+update template_locations set meta_pixel_ids = '{}'::text[] where slug = 'my-cafe';
+```
+
+**Replace, don't append** — separating the two signal pools is the reason the second dataset exists. Listing both IDs works (every entry gets an `fbq('init')`) but treat it as a deliberate exception, not a default.
+
+Decision guide: retail = the guest buys a *product* and leaves (no table, no menu); gastro = the guest consumes prepared food, on premises or via delivery/pickup. Bakery with seating, brewery taproom, deli → gastro if there's a menu of prepared items.
+
+`'{}'` is a legitimate state, not a misconfiguration — ~50 unpublished tenants sit there on purpose. See also [docs/02-adding-a-client.md § Which Meta Pixel?](02-adding-a-client.md#which-meta-pixel) and the agent rule [.cursor/rules/meta-pixel-selection.mdc](../.cursor/rules/meta-pixel-selection.mdc).
+
 ## Turn loyalty on or off
 
 Loyalty is **opt-in per location**. To enable it, set all three attribution IDs (`attribution_org_id`, `attribution_promotion_id`, `attribution_campaign_id`) on a location — the values come from the `attribution-autopilot` service after you create the promotion there. See [docs/04-attribution-integration.md](04-attribution-integration.md).

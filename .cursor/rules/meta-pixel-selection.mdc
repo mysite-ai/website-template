@@ -1,0 +1,59 @@
+---
+description: Which Meta Pixel a new tenant gets — ask the operator, never guess (gastro vs retail)
+globs: supabase/migrations/*.sql,docs/02-adding-a-client.md,docs/08-managing-tenants.md
+alwaysApply: false
+---
+
+# Meta Pixel: ask which one before onboarding a tenant
+
+`template_locations.meta_pixel_ids` is **not** a copy-paste field. We run two
+separate Meta datasets (business Mysite AI) and putting a tenant in the wrong
+    10|one silently poisons audiences and lookalikes on the other.
+
+| Dataset | ID | For |
+| --- | --- | --- |
+| `RestaurantsWebPixel` | `849479710958676` | Gastro — restaurants, cafés, bars, pizzerias, food trucks, sushi, catering |
+| `RetailWebPixel` | `4347830552199286` | Brick-and-mortar retail / services **outside** gastro — pet stores, print shops, salons, bike shops |
+
+## The rule
+
+When creating or configuring a tenant, **ask the operator which pixel applies**
+before writing `meta_pixel_ids`. Do not infer it from the tenant's name — "Guido's
+    20|Pizza" is obvious, "Lindley" and "Shaddai" are not, and both were initially
+onboarded onto the restaurant pixel by mistake (fixed in migration `043`).
+
+Use `AskQuestion` with the two options above, and default the recommendation to
+whichever category the tenant's `about_md` / menu presence suggests — but let the
+operator confirm.
+
+If the answer is genuinely "neither" (tenant doesn't run Meta ads), write
+`'{}'::text[]` — the empty array is a real, supported state. `BaseLayout` then
+skips the pixel island entirely, so the tenant ships no `fbevents.js` at all.
+    30|Roughly 50 unpublished/inactive tenants sit in this state on purpose.
+
+## Choosing
+
+- Retail = the guest buys a **product** and leaves. No table, no menu, no service window.
+- Gastro = the guest consumes **on premises or via delivery/pickup of prepared food**.
+- Edge cases (bakery with seating, brewery taproom, deli): treat as gastro if
+  there's a menu of prepared items. Ask if unsure.
+
+## Writing it
+
+    40|```sql
+-- Gastro
+insert into template_locations (..., meta_pixel_ids)
+values (..., array['849479710958676']::text[]);
+
+-- Retail
+update template_locations l set meta_pixel_ids = array['4347830552199286']::text[]
+  from template_brands b where l.brand_id = b.id and b.slug = 'my-pet-store';
+```
+
+    50|**Replace, don't append.** Separation is the whole point of the second dataset.
+Listing both ids is supported (`MetaPixel.tsx` inits every entry in order) but is
+an explicit exception — call it out to the operator rather than doing it quietly.
+
+Never hardcode either ID in `src/` — the values live in the DB only, so a pixel
+swap never needs a deploy. Both IDs appear in this rule and in migration `043`;
+that's the only place they belong outside Supabase.
