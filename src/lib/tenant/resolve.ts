@@ -111,6 +111,7 @@ const VALID_TILE_TYPES: readonly ActionTileType[] = [
   "call",
   "directions",
   "order",
+  "order_direct",
   "book",
   "reserve",
   "website",

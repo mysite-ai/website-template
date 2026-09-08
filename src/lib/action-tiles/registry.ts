@@ -7,6 +7,7 @@ import {
   Navigation,
   Phone,
   ShoppingBag,
+  ShoppingCart,
   Utensils,
   type LucideIcon,
 } from "lucide-react";
@@ -51,6 +52,12 @@ export const TILE_REGISTRY: Record<ActionTileType, TileDefinition> = {
     defaultLabel: "Order online",
     hrefHint: "https://wolt.com/…",
     umamiEvent: "click-order",
+  },
+  order_direct: {
+    icon: ShoppingCart,
+    defaultLabel: "Order online",
+    hrefHint: "https://order.thanx.com/… or https://order.toasttab.com/…",
+    umamiEvent: "click-order-direct",
   },
   book: {
     icon: Calendar,

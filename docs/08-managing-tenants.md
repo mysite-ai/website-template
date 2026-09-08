@@ -338,7 +338,7 @@ Every tenant renders a row of "next step" tiles between the Hero and the Gallery
 
 Each item has:
 
-- **`type`** (required, closed enum): `call` · `directions` · `order` · `book` · `reserve` · `website` · `whatsapp` · `email`. Every type ships with a hardcoded lucide icon and a default label — you don't need to write CSS or pick an icon. Unknown types are silently skipped by the renderer.
+- **`type`** (required, closed enum): `call` · `directions` · `order` · `order_direct` · `book` · `reserve` · `website` · `whatsapp` · `email`. Every type ships with a hardcoded lucide icon and a default label — you don't need to write CSS or pick an icon. Unknown types are silently skipped by the renderer.
 - **`href`** (required): the destination. `tel:` and `mailto:` stay in-page; anything else opens in a new tab.
 - **`label`** (optional): override the default label (e.g. `"Book at OpenTable"` instead of `"Book a table"`).
 
@@ -372,6 +372,17 @@ update template_locations
      {"type":"whatsapp",  "href":"https://wa.me/15551234567"}
    ]'::jsonb
  where slug = 'third-wave';
+
+-- Both a first-party ordering page AND a marketplace. `order_direct`
+-- goes first (commission-free, guest data stays with the venue) and
+-- reports as `click-order-direct`, so the two are separable in Umami.
+update template_locations
+   set action_tiles = '[
+     {"type":"directions",  "href":"https://www.google.com/maps/search/?api=1&query=Your+Pie+Azusa"},
+     {"type":"order_direct","href":"https://order.thanx.com/yourpie?location=15230"},
+     {"type":"order",       "href":"https://www.doordash.com/store/...", "label":"DoorDash"}
+   ]'::jsonb
+ where slug = 'azusa';
 ```
 
 **Reset to defaults**:

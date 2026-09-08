@@ -57,7 +57,14 @@ export interface GalleryImage {
 export type ActionTileType =
   | "call"
   | "directions"
+  /** Marketplace / aggregator ordering (DoorDash, Wolt, Uber Eats…). */
   | "order"
+  /**
+   * The venue's own ordering channel (Thanx, Toast, ChowNow, a first-party
+   * webshop). Split from `order` so the two report as separate Umami events —
+   * commission-free direct orders are the ones we actually want to grow.
+   */
+  | "order_direct"
   | "book"
   | "reserve"
   | "website"
