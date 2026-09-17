@@ -1,0 +1,73 @@
+---
+/**
+ * Applies MySite landing-page UTMs to every outbound link on the page.
+ *
+ * Rendered only when the tenant actually has a taggable outbound link (gated
+ * by `hasTaggableOutboundLink` in BaseLayout), so a tenant with nothing to
+ * tag ships no extra JS.
+ *
+ * ── Why a plain <script> and not a React island ─────────────────────────
+ * Same reasoning as OpenTableTagger.astro, which this deliberately mirrors:
+ * no UI and no props, so a React runtime would be pure overhead, and a module
+ * script runs earlier than `client:idle`, closing the window where a fast
+ * clicker could hit an untagged link.
+ *
+ * ── Why rewrite href instead of intercepting clicks ─────────────────────
+ * Rewriting the real `href` also covers cmd/ctrl+click, middle-click (which
+ * fires no `click` event at all), "Copy link address", and the URL preview in
+ * the status bar. A click handler would silently drop all of those.
+ *
+ * ── Why not do this server-side ─────────────────────────────────────────
+ * The pages are CDN-cached for 60s, so a visitor-specific `utm_campaign`
+ * baked into the HTML would be served to the next visitor too. See the header
+ * comment in lib/attribution/outbound.ts.
+ *
+ * Runs alongside OpenTableTagger when a tenant has both; the two never fight
+ * because `tagOutboundUrl` skips OpenTable hosts entirely.
+ */
+---
+
+<script>
+  import { getAttributionParam, persistUtmParams } from "@/lib/attribution/tracking";
+  import { resolveLpCampaign, tagOutboundUrl } from "@/lib/attribution/outbound";
+
+  const TAGGED_FLAG = "lpTagged";
+
+  function tagAll() {
+    // Query param first, sessionStorage second — a visitor who landed on
+    // `/?utm_campaign=…` and then navigated to `/menu` keeps the campaign.
+    persistUtmParams();
+    const campaign = resolveLpCampaign(getAttributionParam("utm_campaign"));
+
+    for (const anchor of document.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+      if (anchor.dataset[TAGGED_FLAG]) continue;
+
+      const tagged = tagOutboundUrl(anchor.href, campaign);
+      // `tagOutboundUrl` returns the input untouched for internal links,
+      // `tel:`/`mailto:`, Maps and OpenTable — that's how we skip them.
+      if (tagged === anchor.href) continue;
+
+      anchor.href = tagged;
+      anchor.dataset[TAGGED_FLAG] = "1";
+      // Rides the repo's declarative Umami convention: `data-umami-event-*`
+      // becomes a field on the event payload, so the existing click-order /
+      // click-order-direct events carry the campaign with no event plumbing.
+      // Gives us a first-party count to reconcile against the destination's
+      // own report.
+      anchor.dataset.umamiEventLpCampaign = campaign;
+    }
+  }
+
+  tagAll();
+
+  // React islands hydrate after this script runs (`client:idle` /
+  // `client:visible`) and can replace anchors, dropping the flag with them.
+  // Re-running on subtree changes keeps late-rendered links covered; the
+  // flag check keeps it idempotent and cheap.
+  if (typeof MutationObserver !== "undefined") {
+    new MutationObserver(() => tagAll()).observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+  }
+</script>
