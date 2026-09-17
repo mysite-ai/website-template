@@ -154,13 +154,25 @@ const showTravelTime = !!coords && directionsIndex !== -1;
       {prepared.map((tile, i) => {
         const Icon = tile.icon;
         return (
-          <Fragment key={tile.key}>
+          /*
+           * Every tile lives in a flex row, not just the one that gets the
+           * travel-time chip. A single-child row renders identically to a
+           * bare full-width anchor, and keeping the structure uniform means
+           * the chip can't introduce a second vertical rhythm: all rows sit
+           * in the same `gap-3.5` column and line up edge to edge.
+           *
+           * `items-stretch` is what makes the chip match the neighbouring
+           * tile's height exactly — tiles are as tall as their content
+           * (those with a sublabel are taller), so a fixed chip height would
+           * misalign on some tenants and not others.
+           */
+          <div class="flex w-full items-stretch gap-2.5">
           <a
             href={tile.href}
             aria-label={tile.ariaLabel}
             data-umami-event={tile.umamiEvent}
             data-umami-event-target="quick-actions"
-            class="group flex w-full items-center justify-center gap-2.5 rounded-2xl border border-foreground/15 bg-card px-5 py-3 text-center shadow-[0_1px_2px_rgb(0_0_0/0.05),0_6px_18px_-12px_rgb(0_0_0/0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/[0.05] hover:shadow-[0_2px_6px_rgb(0_0_0/0.07),0_12px_28px_-14px_rgb(0_0_0/0.4)] active:translate-y-0 active:scale-[0.99]"
+            class="group flex min-w-0 flex-1 items-center justify-center gap-2.5 rounded-2xl border border-foreground/15 bg-card px-5 py-3 text-center shadow-[0_1px_2px_rgb(0_0_0/0.05),0_6px_18px_-12px_rgb(0_0_0/0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/[0.05] hover:shadow-[0_2px_6px_rgb(0_0_0/0.07),0_12px_28px_-14px_rgb(0_0_0/0.4)] active:translate-y-0 active:scale-[0.99]"
             {...(tile.external
               ? { target: "_blank", rel: "noopener noreferrer" }
               : {})}
@@ -183,20 +195,23 @@ const showTravelTime = !!coords && directionsIndex !== -1;
             </span>
           </a>
 
-          {/* Secondary to the Directions tile it sits under — a quiet chip,
-              never a second full-width bar competing with the real CTAs. */}
+          {/* Sits inside the Directions row as its companion, so the two
+              read as one decision ("where is it / how far is it") rather
+              than as two competing calls to action. Icon-only: the row has
+              no horizontal room for a second label, and the glyph gets
+              replaced by the actual answer once one exists. */}
           {showTravelTime && i === directionsIndex && (
-            <div class="-mt-1.5 flex justify-center">
-              <TravelTime
-                client:visible
-                venue={coords!}
-                country={location.country}
-                venueName={location.name}
-                locationId={location.id}
-              />
-            </div>
+            <TravelTime
+              client:visible
+              venue={coords!}
+              country={location.country}
+              venueName={location.name}
+              locationId={location.id}
+              variant="icon"
+              placement="quick-actions"
+            />
           )}
-          </Fragment>
+          </div>
         );
       })}
     </div>

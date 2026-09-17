@@ -1,6 +1,8 @@
 ---
 import type { TenantContext } from "@/lib/tenant/types";
 import { formatPhone } from "@/lib/utils";
+import { venueCoords } from "@/lib/geo/travel-time";
+import TravelTime from "@/components/sections/TravelTime.tsx";
 import { Navigation, Phone, Mail, MapPin, Clock } from "lucide-react";
 
 interface Props {
@@ -17,6 +19,21 @@ const emailHref = location.email ? `mailto:${location.email}` : null;
 const directionsHref = location.maps_search_query
   ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.maps_search_query)}`
   : null;
+
+/**
+ * Second travel-time entry point, labelled this time.
+ *
+ * The icon chip in QuickActions is the primary one — travel time is a
+ * pre-decision question and belongs above the fold. This one exists because
+ * the Contact card is where a guest lands when they scroll looking for the
+ * address, and arriving there with no way to ask "how far is that?" would
+ * send them out to Maps to find out. Both instances share one geolocation
+ * fix (see `FIX_EVENT`), so having two costs no extra prompt.
+ *
+ * Gated on coordinates alone: unlike the chip upstairs, this button isn't a
+ * companion to a tile, so it stands on its own.
+ */
+const coords = venueCoords(location);
 
 const hasContact =
   addressLine1 ||
@@ -124,6 +141,18 @@ const shouldRender = hasContact || hasMap;
               </div>
             )}
           </dl>
+
+          {coords && (
+            <TravelTime
+              client:visible
+              venue={coords}
+              country={location.country}
+              venueName={location.name}
+              locationId={location.id}
+              variant="full"
+              placement="section-contact"
+            />
+          )}
         </div>
       )}
 

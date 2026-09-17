@@ -28,6 +28,19 @@ interface Props {
   venueName: string;
   /** Stable key for the per-session result cache. */
   locationId: string;
+  /**
+   * `"icon"` — a square, icon-only chip sized to sit inside the Directions
+   * row at the top of the page, where horizontal space is the constraint.
+   * `"full"` — a labelled, full-width button for the Contact section, where
+   * there is room to explain itself and no adjacent tile to compete with.
+   */
+  variant?: "icon" | "full";
+  /**
+   * Where this instance renders. Rides along on every event so the two
+   * placements can be compared: the whole reason the top chip exists is a
+   * suspicion that the bottom one goes unseen, and this is what settles it.
+   */
+  placement: string;
 }
 
 type Phase =
@@ -40,20 +53,46 @@ type Phase =
 type GeoErrorKind = "denied" | "unavailable" | "timeout";
 
 /**
+ * Broadcast channel between the two instances on a page.
+ *
+ * Both placements render the same feature, but as separate islands they get
+ * separate React state — so without this, tapping the top chip would leave
+ * the bottom button still offering to do the thing that was already done,
+ * and a guest scrolling down would see two different answers to one
+ * question.
+ *
+ * The event carries the *precise* position rather than the snapped one so
+ * both instances display identical numbers (a snapped hand-off would show
+ * two figures a few hundred metres apart on the same page). It never leaves
+ * the document — same-page state sharing, not transmission.
+ *
+ * Only the instance that actually asked for the fix reports to analytics;
+ * listeners apply it silently. That keeps `eta-result` a count of real
+ * measurements rather than a count of components mounted.
+ */
+const FIX_EVENT = "mysite:eta-fix";
+
+type FixEventDetail = { origin: LatLng };
+
+/**
  * "How long will it take me to get there?" — answered in one tap, from the
  * top of the page.
  *
  * ── Why a compact button + bottom sheet ─────────────────────────────────
- * The first cut rendered this as a panel inside the Contact section at the
- * very bottom of the page, where it went unseen: travel time is a *pre*-
- * decision question, so it has to sit next to Directions in the primary
- * action row, not below the opening hours. But a full result panel in that
- * row would push the other actions down and make the row lopsided before
- * anyone even taps.
+ * The first cut rendered this only as a panel inside the Contact section at
+ * the very bottom of the page, where it went unseen: travel time is a
+ * *pre*-decision question, so it has to be reachable from the primary
+ * action row too. But a full result panel in that row would push the other
+ * actions down and make the row lopsided before anyone even taps.
  *
- * A bottom sheet resolves both: the trigger stays a single quiet chip in
- * the action row, and the answer arrives in the thumb zone — which is also
+ * A bottom sheet resolves both: the trigger stays a quiet chip in the
+ * action row, and the answer arrives in the thumb zone — which is also
  * where a phone user expects a result they may want to dismiss.
+ *
+ * Two instances render per page (`variant="icon"` in the action row,
+ * `variant="full"` in Contact) and stay in lockstep through `FIX_EVENT`.
+ * Both are the same component on purpose: a separate "small" version would
+ * drift from this one the first time either changed.
  *
  * ── Why an estimate and not a routed ETA ────────────────────────────────
  * Everything is computed in the browser from the venue's coordinates and
@@ -67,7 +106,14 @@ type GeoErrorKind = "denied" | "unavailable" | "timeout";
  * fix is used for exactly that, in memory; anything reported to analytics
  * is quantised to a grid first (`snapForTelemetry`) and reduced to buckets.
  */
-export default function TravelTime({ venue, country, venueName, locationId }: Props) {
+export default function TravelTime({
+  venue,
+  country,
+  venueName,
+  locationId,
+  variant = "icon",
+  placement,
+}: Props) {
   const [phase, setPhase] = useState<Phase>({ status: "idle" });
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<TravelMode>("drive");
@@ -107,6 +153,7 @@ export default function TravelTime({ venue, country, venueName, locationId }: Pr
         if (opts.report) {
           trackUmami("eta-result", {
             outcome: "too_far",
+            placement,
             distance_bucket: distanceBucket(km, imperial),
           });
         }
@@ -126,6 +173,7 @@ export default function TravelTime({ venue, country, venueName, locationId }: Pr
         trackUmami("eta-result", {
           outcome: "ok",
           mode: forMode,
+          placement,
           source: estimate.source,
           duration_min: estimate.durationMin,
           eta_bucket: eta,
@@ -144,15 +192,32 @@ export default function TravelTime({ venue, country, venueName, locationId }: Pr
         identifyUmami({ eta_bucket: eta, distance_bucket: dist });
       }
     },
-    [imperial, venue],
+    [imperial, placement, venue],
   );
 
   /**
-   * Mount: replay a fix already captured in this session, otherwise find
-   * out whether asking for one is even possible.
+   * Mount: listen for a fix found by the *other* instance, then either
+   * replay one already captured in this session or find out whether asking
+   * for one is even possible.
    */
   useEffect(() => {
     let cancelled = false;
+
+    // Sibling instance found a fix — adopt it silently. `report: false`
+    // because that instance already logged the measurement; counting it
+    // twice would double every number in the funnel.
+    const onSiblingFix = (e: Event) => {
+      if (cancelled) return;
+      const detail = (e as CustomEvent<FixEventDetail>).detail;
+      if (!detail?.origin) return;
+      applyPosition(detail.origin, mode, { report: false });
+    };
+    window.addEventListener(FIX_EVENT, onSiblingFix);
+
+    const cleanup = () => {
+      cancelled = true;
+      window.removeEventListener(FIX_EVENT, onSiblingFix);
+    };
 
     try {
       const raw = sessionStorage.getItem(cacheKey);
@@ -163,7 +228,7 @@ export default function TravelTime({ venue, country, venueName, locationId }: Pr
           // when the fix was taken; re-firing it on every page view would
           // inflate the one metric this feature exists to measure.
           applyPosition(saved, mode, { report: false });
-          return;
+          return cleanup;
         }
       }
     } catch {
@@ -172,7 +237,7 @@ export default function TravelTime({ venue, country, venueName, locationId }: Pr
 
     // Permissions API is absent on some older Safari builds; leaving the
     // state `null` means "unknown", which keeps the trigger visible.
-    if (!navigator.permissions?.query) return;
+    if (!navigator.permissions?.query) return cleanup;
 
     navigator.permissions
       .query({ name: "geolocation" })
@@ -187,9 +252,7 @@ export default function TravelTime({ venue, country, venueName, locationId }: Pr
         /* treat as unknown */
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return cleanup;
     // Mount-only: `mode` is read once to replay a cached fix, and
     // `applyPosition` is stable for a given venue.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -199,7 +262,7 @@ export default function TravelTime({ venue, country, venueName, locationId }: Pr
     (forMode: TravelMode) => {
       if (!("geolocation" in navigator)) {
         setPhase({ status: "error", kind: "unavailable" });
-        trackUmami("eta-permission", { state: "unavailable" });
+        trackUmami("eta-permission", { state: "unavailable", placement });
         return;
       }
 
@@ -209,7 +272,7 @@ export default function TravelTime({ venue, country, venueName, locationId }: Pr
         (pos) => {
           if (!mountedRef.current) return;
           const origin = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          trackUmami("eta-permission", { state: "granted" });
+          trackUmami("eta-permission", { state: "granted", placement });
 
           try {
             // Store snapped, never precise.
@@ -222,6 +285,12 @@ export default function TravelTime({ venue, country, venueName, locationId }: Pr
           }
 
           applyPosition(origin, forMode, { report: true });
+
+          // Bring the sibling instance up to date so a guest who scrolls on
+          // doesn't meet a button offering to redo what just happened.
+          window.dispatchEvent(
+            new CustomEvent<FixEventDetail>(FIX_EVENT, { detail: { origin } }),
+          );
         },
         (err) => {
           if (!mountedRef.current) return;
@@ -232,7 +301,7 @@ export default function TravelTime({ venue, country, venueName, locationId }: Pr
                 ? "timeout"
                 : "unavailable";
           setPhase({ status: "error", kind });
-          trackUmami("eta-permission", { state: kind });
+          trackUmami("eta-permission", { state: kind, placement });
         },
         {
           // A city-block-accurate fix from Wi-Fi/cell towers returns in
@@ -246,17 +315,17 @@ export default function TravelTime({ venue, country, venueName, locationId }: Pr
         },
       );
     },
-    [applyPosition, cacheKey, venue],
+    [applyPosition, cacheKey, placement, venue],
   );
 
   const handleTrigger = useCallback(() => {
-    trackUmami("eta-intent", { mode, target: "quick-actions" });
+    trackUmami("eta-intent", { mode, placement });
     setOpen(true);
     // A replayed fix is already in `ready` — don't re-prompt, just show it.
     if (phase.status === "idle" || phase.status === "error") {
       requestLocation(mode);
     }
-  }, [mode, phase.status, requestLocation]);
+  }, [mode, phase.status, placement, requestLocation]);
 
   const switchMode = useCallback(
     (next: TravelMode) => {
@@ -264,28 +333,74 @@ export default function TravelTime({ venue, country, venueName, locationId }: Pr
       // Recomputing is free and offline; no second prompt, no second call.
       if (phase.status === "ready") {
         applyPosition(phase.origin, next, { report: false });
-        trackUmami("eta-mode-switch", { mode: next });
+        trackUmami("eta-mode-switch", { mode: next, placement });
       }
     },
-    [applyPosition, phase],
+    [applyPosition, phase, placement],
   );
 
-  // Nothing we can offer: the row already has a Directions tile.
+  // Nothing we can offer: both placements sit next to a Directions link.
   if (permission === "denied") return null;
+
+  /**
+   * The result, condensed to a label. Shown on both variants once a fix is
+   * known, so a guest gets the answer without opening anything — and, for
+   * the icon variant, so the row isn't left with a mystery glyph.
+   */
+  const answer =
+    phase.status === "ready" ? `~${formatDuration(phase.estimate.durationMin)}` : null;
 
   return (
     <>
-      <button
-        type="button"
-        onClick={handleTrigger}
-        className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full border border-foreground/15 bg-card px-3.5 text-[12.5px] font-medium text-foreground shadow-[0_1px_2px_rgb(0_0_0/0.04)] transition-all duration-200 hover:border-primary/40 hover:bg-primary/[0.05] active:translate-y-px"
-      >
-        <Car size={15} strokeWidth={2} aria-hidden="true" className="text-primary" />
-        {/* Answers "why would I tap this?" without a tooltip. */}
-        {phase.status === "ready"
-          ? `~${formatDuration(phase.estimate.durationMin)} away`
-          : "Travel time"}
-      </button>
+      {variant === "icon" ? (
+        /*
+         * Icon-only, and square while it has nothing to say — the action row
+         * is horizontally tight, and a labelled chip here would crowd the
+         * Directions tile it belongs to. `self-stretch` makes it match that
+         * tile's height exactly, whatever the tile's content does, which is
+         * what keeps the row's vertical rhythm intact.
+         *
+         * Once the answer exists the chip widens to show it: at that point
+         * the number has earned the space the label never did.
+         */
+        <button
+          type="button"
+          onClick={handleTrigger}
+          aria-label={answer ? `Travel time: ${answer}` : "Check travel time"}
+          title={answer ? `${answer} away` : "Check travel time"}
+          className={cn(
+            "group/eta flex shrink-0 items-center justify-center gap-1.5 self-stretch rounded-2xl border border-foreground/15 bg-card shadow-[0_1px_2px_rgb(0_0_0/0.05),0_6px_18px_-12px_rgb(0_0_0/0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/[0.05] active:translate-y-0 active:scale-[0.99]",
+            answer ? "px-4" : "aspect-square w-[52px]",
+          )}
+        >
+          <Car
+            size={18}
+            strokeWidth={2}
+            aria-hidden="true"
+            className="shrink-0 text-primary transition-transform duration-200 group-hover/eta:scale-110"
+          />
+          {answer && (
+            <span className="text-[13px] font-semibold tabular-nums tracking-tight text-foreground">
+              {answer}
+            </span>
+          )}
+        </button>
+      ) : (
+        /*
+         * Full-width and labelled, matching the Directions link it sits
+         * under in the Contact card. Down here there is no adjacent tile to
+         * crowd and no guarantee the guest saw the icon chip at the top, so
+         * this one spells itself out.
+         */
+        <button
+          type="button"
+          onClick={handleTrigger}
+          className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-card text-[13.5px] font-medium text-foreground ring-1 ring-foreground/10 transition-colors hover:bg-muted active:translate-y-px"
+        >
+          <Car size={16} strokeWidth={1.75} aria-hidden="true" />
+          {answer ? `${answer} away — see details` : "Check travel time"}
+        </button>
+      )}
 
       <Sheet open={open} onClose={() => setOpen(false)}>
         {phase.status === "locating" && <LocatingState />}
