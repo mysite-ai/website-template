@@ -6,7 +6,7 @@
  * Rendered only when the tenant actually has an OpenTable link (gated by
  * `hasOpenTableLink` in BaseLayout), so most tenants ship no extra JS.
  *
- * ── Why a plain <script> and not a React island ─────────────────────────
+ * ── Why a plain script tag and not a React island ───────────────────────
  * Its siblings (`Umami.tsx`, `MetaPixel.tsx`) are `client:idle` islands
  * because they load third-party SDKs. This has no UI and no props, so a
  * React runtime would be pure overhead for tenants with no other island —

@@ -6,7 +6,7 @@
  * by `hasTaggableOutboundLink` in BaseLayout), so a tenant with nothing to
  * tag ships no extra JS.
  *
- * ── Why a plain <script> and not a React island ─────────────────────────
+ * ── Why a plain script tag and not a React island ───────────────────────
  * Same reasoning as OpenTableTagger.astro, which this deliberately mirrors:
  * no UI and no props, so a React runtime would be pure overhead, and a module
  * script runs earlier than `client:idle`, closing the window where a fast
