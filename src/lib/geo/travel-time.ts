@@ -47,6 +47,17 @@ export interface TravelEstimate {
   durationMin: number;
   /** Road distance (straight line × detour factor), kilometres. */
   distanceKm: number;
+  /**
+   * Exact great-circle distance, kilometres — unmodelled.
+   *
+   * Kept alongside `distanceKm` because the two answer different
+   * questions and confusing them has a real cost. `distanceKm` is what a
+   * guest should *read* (nobody travels the diagonal). `straightKm` is
+   * what analytics must *report*: ad platforms target a radius, and a
+   * radius is a circle, so a report built on road distance would push us
+   * to over-target by the detour factor. See `distanceBucket`.
+   */
+  straightKm: number;
   /** How the numbers were produced. See file header. */
   source: "estimate" | "routed";
 }
@@ -250,6 +261,7 @@ export function estimateTravel(
     mode,
     durationMin: roundMinutes(raw),
     distanceKm,
+    straightKm,
     source: "estimate",
   };
 }
@@ -381,8 +393,25 @@ export function etaBucket(min: number): string {
   return "30min+";
 }
 
-export function distanceBucket(km: number, imperial: boolean): string {
-  const v = imperial ? km / KM_PER_MILE : km;
+/**
+ * Buckets a **straight-line** distance for analytics.
+ *
+ * ── Feed this `straightKm`, never `distanceKm` ──────────────────────────
+ * The point of this dimension is to set an ad-targeting radius, and every
+ * ad platform's radius is a circle — i.e. straight-line. Reporting road
+ * distance here inflates every reading by the detour factor (20-40%) and
+ * pushes four of eleven sample distances up a whole bucket: a guest 4.5 km
+ * away reports as "5-10km", so you widen the radius to 10 km and burn
+ * budget on reach you never needed.
+ *
+ * There is a second reason to prefer it: `straightKm` is exact geometry
+ * from two coordinate pairs, while `distanceKm` and the duration are
+ * modelled. Bucketing the unmodelled value means the most decision-
+ * relevant part of this signal carries no estimation error at all — it
+ * stays valid even if the speed constants are retuned later.
+ */
+export function distanceBucket(straightKm: number, imperial: boolean): string {
+  const v = imperial ? straightKm / KM_PER_MILE : straightKm;
   const unit = imperial ? "mi" : "km";
   if (v < 1) return `0-1${unit}`;
   if (v < 3) return `1-3${unit}`;
@@ -404,4 +433,54 @@ export function venueCoords(location: TenantLocation): LatLng | null {
   if (latitude == null || longitude == null) return null;
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
   return { lat: latitude, lng: longitude };
+}
+
+/* ──────────────────────── Hand-off to a real map ──────────────────────── */
+
+/**
+ * Deep links for actually navigating there, once the guest knows the trip
+ * is worth making.
+ *
+ * Both platforms get their native app: `maps.apple.com` opens Apple Maps
+ * directly on iOS (and degrades to a web map elsewhere), while the Google
+ * URL opens the Google Maps app when installed. Offering the platform's
+ * own default is the difference between one tap and a detour through a
+ * browser — and on iOS, Google's link is a dead end for anyone who never
+ * installed the app.
+ *
+ * `daddr`/`destination` carry coordinates rather than the venue name so
+ * the destination can't be mis-resolved to a different branch of the same
+ * brand — the exact failure mode `maps_search_query` has on chains.
+ *
+ * Deliberately no `saddr`/`origin`: leaving the start empty makes both
+ * apps use the device's live position, which is both more accurate than
+ * anything we'd pass and keeps the visitor's coordinates out of a URL.
+ */
+export function appleMapsHref(venue: LatLng, label?: string | null): string {
+  const q = new URLSearchParams({ daddr: `${venue.lat},${venue.lng}`, dirflg: "d" });
+  if (label) q.set("q", label);
+  return `https://maps.apple.com/?${q.toString()}`;
+}
+
+export function googleMapsHref(venue: LatLng): string {
+  const q = new URLSearchParams({
+    api: "1",
+    destination: `${venue.lat},${venue.lng}`,
+  });
+  return `https://www.google.com/maps/dir/?${q.toString()}`;
+}
+
+/**
+ * Whether to put Apple Maps first. iOS/iPadOS taps `maps://` natively;
+ * everyone else expects Google. Ordering matters more than availability —
+ * both links always render, so a misdetection costs a scan, not a dead end.
+ */
+export function prefersAppleMaps(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  // iPadOS 13+ reports as "Macintosh", hence the touch-point check.
+  return (
+    /iPhone|iPad|iPod/.test(ua) ||
+    (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
+  );
 }

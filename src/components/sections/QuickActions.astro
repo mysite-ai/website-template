@@ -2,6 +2,8 @@
 import type { TenantContext, ActionTile, ActionTileType } from "@/lib/tenant/types";
 import { formatPhone } from "@/lib/utils";
 import { TILE_REGISTRY, FALLBACK_ICON, isExternalHref } from "@/lib/action-tiles/registry";
+import { venueCoords } from "@/lib/geo/travel-time";
+import TravelTime from "@/components/sections/TravelTime.tsx";
 
 interface Props {
   tenant: TenantContext;
@@ -119,6 +121,27 @@ const prepared: Prepared[] = tiles.map((tile, i) => {
     icon: def.icon ?? FALLBACK_ICON,
   };
 });
+
+/*
+ * Travel-time chip, attached under the Directions tile.
+ *
+ * Placed here rather than in the Contact section (where it first shipped)
+ * because travel time is a *pre*-decision question: a guest weighing "is
+ * this place worth the trip?" needs it in the primary action row, not
+ * below the opening hours at the bottom of the page, where it went unseen.
+ *
+ * Two server-side gates keep it honest:
+ *   - `venueCoords` — a location with no coordinates ships zero extra JS,
+ *     same stance as `hasTaggableOutboundLink` in lib/attribution.
+ *   - a Directions tile must exist — the chip is a companion to it, and
+ *     the sheet's own Google/Apple buttons would be the only way out of a
+ *     row that otherwise never offers navigation.
+ * Both depend only on cacheable tenant data, so the CDN-cached HTML stays
+ * correct; the per-visitor work happens in the browser.
+ */
+const coords = venueCoords(location);
+const directionsIndex = prepared.findIndex((tile) => tile.type === "directions");
+const showTravelTime = !!coords && directionsIndex !== -1;
 ---
 
 {prepared.length > 0 && (
@@ -128,9 +151,10 @@ const prepared: Prepared[] = tiles.map((tile, i) => {
         each one reads as a distinct, tappable button. Soft card surface,
         visible border and a gentle lift on hover keep it noticeable. */}
     <div class="flex w-full flex-col gap-3.5">
-      {prepared.map((tile) => {
+      {prepared.map((tile, i) => {
         const Icon = tile.icon;
         return (
+          <Fragment key={tile.key}>
           <a
             href={tile.href}
             aria-label={tile.ariaLabel}
@@ -158,6 +182,21 @@ const prepared: Prepared[] = tiles.map((tile, i) => {
               )}
             </span>
           </a>
+
+          {/* Secondary to the Directions tile it sits under — a quiet chip,
+              never a second full-width bar competing with the real CTAs. */}
+          {showTravelTime && i === directionsIndex && (
+            <div class="-mt-1.5 flex justify-center">
+              <TravelTime
+                client:visible
+                venue={coords!}
+                country={location.country}
+                venueName={location.name}
+                locationId={location.id}
+              />
+            </div>
+          )}
+          </Fragment>
         );
       })}
     </div>
