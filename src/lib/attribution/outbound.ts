@@ -125,16 +125,51 @@ export function tagOutboundUrl(href: string, campaign: string): string {
 /**
  * Server-side gate: does this tenant have any taggable outbound link?
  *
- * Checks every place one can be configured — action tiles, the delivery
- * provider list, and `website_url`. Depends only on tenant DB data, so it
- * stays cache-safe, and a tenant with no outbound links ships zero extra
- * JavaScript.
+ * Depends only on tenant DB data, so it stays cache-safe, and a tenant with no
+ * outbound links ships zero extra JavaScript.
+ *
+ * ── Keep this list in sync with what actually renders an <a> ─────────────
+ * The gate is only correct if it enumerates *every* tenant-configurable URL
+ * that `tagOutboundUrl` would tag. It originally listed only the three
+ * "commercial" surfaces (action tiles, delivery providers, `website_url`) and
+ * silently missed the socials in `Footer.astro`, which broke every phone-only
+ * tenant: action tiles of just Call (`tel:`) + Directions (Maps) are both
+ * skip-listed, so a venue whose only http(s) links are its Instagram and
+ * Facebook profiles scored `false`, `OutboundTagger` never shipped, and those
+ * links went out completely untagged — even though `tagOutboundUrl` tags them
+ * happily once the script is on the page. Socials are exactly as taggable as
+ * an ordering link: real outbound traffic the tenant can see in their own
+ * analytics, and the only measurable destination some venues have.
+ *
+ * Current coverage, matched against the components that render anchors:
+ *   - `action_tiles[].href`  → QuickActions.astro
+ *   - `delivery[].url`       → Delivery.astro (also the auto-derived Order
+ *                              tile QuickActions falls back to when
+ *                              `action_tiles` is NULL, hence no extra entry)
+ *   - `website_url`          → Hero.astro ("Visit our website" button)
+ *   - `instagram_url`        → Footer.astro
+ *   - `facebook_url`         → Footer.astro
+ *   - `google_place_url`     → Hero.astro (the rating link). Every tenant
+ *                              today stores a `google.com/maps` URL, which
+ *                              `isSkippedHost` rejects — but it's an operator-
+ *                              pasted column, and a `g.page/…` short link
+ *                              would be taggable, so the gate has to know
+ *                              about it rather than assume the host.
+ *
+ * Deliberately absent: `phone` (`tel:`), `email` (`mailto:`) and
+ * `maps_search_query` (Maps) can never be taggable, internal nav links are
+ * skip-listed, and `MysiteBadge.astro`'s mysite.ai link is hardcoded rather
+ * than tenant-configurable — counting it would make the gate true for every
+ * tenant and defeat the point of having one.
  */
 export function hasTaggableOutboundLink(location: TenantLocation): boolean {
   const candidates = [
     ...(location.action_tiles ?? []).map((tile) => tile.href),
     ...location.delivery.map((link) => link.url),
     location.website_url,
+    location.instagram_url,
+    location.facebook_url,
+    location.google_place_url,
   ];
 
   return candidates.some((href) => {
