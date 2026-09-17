@@ -1,6 +1,8 @@
 ---
 import type { TenantContext } from "@/lib/tenant/types";
 import { formatPhone } from "@/lib/utils";
+import { venueCoords } from "@/lib/geo/travel-time";
+import TravelTime from "@/components/sections/TravelTime.tsx";
 import { Navigation, Phone, Mail, MapPin, Clock } from "lucide-react";
 
 interface Props {
@@ -17,6 +19,14 @@ const emailHref = location.email ? `mailto:${location.email}` : null;
 const directionsHref = location.maps_search_query
   ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.maps_search_query)}`
   : null;
+
+/**
+ * Server-side gate for the travel-time island: a location without
+ * coordinates ships zero extra JavaScript rather than a button that could
+ * only ever fail. Same stance as `hasTaggableOutboundLink` — compute the
+ * gate from cacheable tenant data, do the per-visitor work in the browser.
+ */
+const coords = venueCoords(location);
 
 const hasContact =
   addressLine1 ||
@@ -124,6 +134,16 @@ const shouldRender = hasContact || hasMap;
               </div>
             )}
           </dl>
+
+          {coords && (
+            <TravelTime
+              client:visible
+              venue={coords}
+              country={location.country}
+              locationId={location.id}
+              directionsHref={directionsHref}
+            />
+          )}
         </div>
       )}
 
