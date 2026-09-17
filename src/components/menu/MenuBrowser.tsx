@@ -13,6 +13,27 @@ export default function MenuBrowser({ menu }: Props) {
   const [activeId, setActiveId] = useState<string>(categories[0]?.id ?? "");
   const sectionsRef = useRef<Record<string, HTMLDivElement | null>>({});
 
+  /*
+   * "Market" is the per-item fallback for a dish whose price genuinely varies
+   * (catch of the day, market-price steak). It only carries that meaning when
+   * it sits NEXT TO real prices.
+   *
+   * Some tenants ship a menu with no prices at all — either the client hasn't
+   * sent a price list yet, or their prices live on an external ordering
+   * platform we hand off to (Taava Kitchen: prices are only available inside
+   * an authenticated Square session). On those menus, stamping "MARKET" on
+   * every one of 74 rows tells the guest nothing and actively misleads —
+   * it reads as "every single dish here is market-priced".
+   *
+   * So when NO item in the whole menu has a price, drop the column entirely
+   * and let the item name + description carry the row. A partially priced
+   * menu still shows "Market" on the unpriced items, which is correct.
+   */
+  const anyPriced = useMemo(
+    () => categories.some((cat) => cat.items.some((item) => !!item.price)),
+    [categories],
+  );
+
   // Sync active tab as sections scroll into view.
   useEffect(() => {
     if (categories.length === 0) return;
@@ -70,6 +91,7 @@ export default function MenuBrowser({ menu }: Props) {
           <CategorySection
             key={cat.id}
             category={cat}
+            showMarketFallback={anyPriced}
             registerRef={(el) => {
               sectionsRef.current[cat.id] = el;
             }}
@@ -83,9 +105,11 @@ export default function MenuBrowser({ menu }: Props) {
 interface CategorySectionProps {
   category: MenuCategory;
   registerRef: (el: HTMLDivElement | null) => void;
+  /** False when no item in the entire menu is priced — see MenuBrowser. */
+  showMarketFallback: boolean;
 }
 
-function CategorySection({ category, registerRef }: CategorySectionProps) {
+function CategorySection({ category, registerRef, showMarketFallback }: CategorySectionProps) {
   return (
     <section
       ref={registerRef}
@@ -110,7 +134,7 @@ function CategorySection({ category, registerRef }: CategorySectionProps) {
       <Card className="!p-0 gap-0">
         <ul className="divide-y divide-foreground/10">
           {category.items.map((item) => (
-            <Item key={item.id} item={item} />
+            <Item key={item.id} item={item} showMarketFallback={showMarketFallback} />
           ))}
         </ul>
       </Card>
@@ -120,9 +144,10 @@ function CategorySection({ category, registerRef }: CategorySectionProps) {
 
 interface ItemProps {
   item: MenuItem;
+  showMarketFallback: boolean;
 }
 
-function Item({ item }: ItemProps) {
+function Item({ item, showMarketFallback }: ItemProps) {
   const priceLabel = useMemo(() => {
     if (!item.price) return null;
     return formatMoney(item.price);
@@ -146,11 +171,11 @@ function Item({ item }: ItemProps) {
             <span className="shrink-0 text-[14.5px] font-semibold tabular-nums text-foreground">
               {priceLabel}
             </span>
-          ) : (
+          ) : showMarketFallback ? (
             <span className="shrink-0 text-[11px] uppercase tracking-wide text-muted-foreground">
               Market
             </span>
-          )}
+          ) : null}
         </div>
         {item.description && (
           <p className="mt-1 text-[13px] leading-snug text-muted-foreground line-clamp-2">
