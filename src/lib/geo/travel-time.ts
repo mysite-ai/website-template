@@ -435,6 +435,38 @@ export function venueCoords(location: TenantLocation): LatLng | null {
   return { lat: latitude, lng: longitude };
 }
 
+/** "1 h" / "5 min" / "just now" — how old a stored fix is. */
+export function formatAge(ms: number): string {
+  const min = Math.floor(ms / 60_000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min} min ago`;
+  const h = Math.floor(min / 60);
+  return h === 1 ? "1 h ago" : `${h} h ago`;
+}
+
+/**
+ * How long a stored position may be replayed before we insist on a new one.
+ *
+ * The cache exists so re-opening the sheet, switching drive↔walk or moving
+ * between `/` and `/menu` doesn't re-prompt. It is *not* meant to answer a
+ * deliberate "check again" an hour later: a guest who has since driven
+ * halfway across town would be shown their old distance, which reads as the
+ * feature being broken (and was — the first cut stored no timestamp at all,
+ * so a fix survived for the entire tab session).
+ *
+ * Ten minutes is long enough to cover a browsing session and short enough
+ * that anyone who has actually travelled gets re-measured. A fix is free to
+ * take, so erring short costs nothing.
+ */
+export const FIX_TTL_MS = 10 * 60 * 1000;
+
+/**
+ * Above this age, opening the sheet silently re-measures in the background
+ * while still showing the previous answer, so the panel never regresses to
+ * a spinner for a value it already has.
+ */
+export const FIX_STALE_MS = 90 * 1000;
+
 /* ──────────────────────── Hand-off to a real map ──────────────────────── */
 
 /**

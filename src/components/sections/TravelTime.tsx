@@ -6,6 +6,9 @@ import {
   distanceBucket,
   estimateTravel,
   etaBucket,
+  FIX_STALE_MS,
+  FIX_TTL_MS,
+  formatAge,
   formatDistance,
   formatDuration,
   googleMapsHref,
@@ -46,7 +49,19 @@ interface Props {
 type Phase =
   | { status: "idle" }
   | { status: "locating" }
-  | { status: "ready"; origin: LatLng; estimate: TravelEstimate }
+  /**
+   * `at` — when the underlying position was taken, and `refreshing` —
+   * whether a newer one is already on the way. Together they let the sheet
+   * show a slightly-old answer *and* the fact that it's being updated,
+   * instead of blanking to a spinner for a value it already has.
+   */
+  | {
+      status: "ready";
+      origin: LatLng;
+      estimate: TravelEstimate;
+      at: number;
+      refreshing: boolean;
+    }
   | { status: "too-far"; km: number }
   | { status: "error"; kind: GeoErrorKind };
 
@@ -72,7 +87,35 @@ type GeoErrorKind = "denied" | "unavailable" | "timeout";
  */
 const FIX_EVENT = "mysite:eta-fix";
 
-type FixEventDetail = { origin: LatLng };
+type FixEventDetail = { origin: LatLng; at: number };
+
+/** What we persist for the session. `at` is what makes staleness knowable. */
+type StoredFix = { lat: number; lng: number; at: number };
+
+/**
+ * Reads a session-stored fix, or `null` when there isn't a usable one.
+ *
+ * Enforces `FIX_TTL_MS` here rather than at the call sites so no future
+ * caller can accidentally reintroduce the bug this replaced: the first cut
+ * stored no timestamp, so a position taken an hour earlier was replayed
+ * forever and "check travel time" silently stopped meaning "now".
+ */
+function readStoredFix(key: string): StoredFix | null {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const saved = JSON.parse(raw) as StoredFix;
+    if (!Number.isFinite(saved?.lat) || !Number.isFinite(saved?.lng)) return null;
+    // A fix with no `at` was written by the previous format: treat it as
+    // expired rather than trusting an unknown age.
+    if (!Number.isFinite(saved?.at)) return null;
+    if (Date.now() - saved.at > FIX_TTL_MS) return null;
+    return saved;
+  } catch {
+    // Private mode / quota / malformed JSON all mean "no usable fix".
+    return null;
+  }
+}
 
 /**
  * "How long will it take me to get there?" — answered in one tap, from the
@@ -144,7 +187,11 @@ export default function TravelTime({
   const cacheKey = `eta:${locationId}`;
 
   const applyPosition = useCallback(
-    (origin: LatLng, forMode: TravelMode, opts: { report: boolean }) => {
+    (
+      origin: LatLng,
+      forMode: TravelMode,
+      opts: { report: boolean; at: number; refreshing?: boolean },
+    ) => {
       const estimate = estimateTravel(origin, venue, forMode);
 
       if (!estimate) {
@@ -160,7 +207,13 @@ export default function TravelTime({
         return;
       }
 
-      setPhase({ status: "ready", origin, estimate });
+      setPhase({
+        status: "ready",
+        origin,
+        estimate,
+        at: opts.at,
+        refreshing: opts.refreshing ?? false,
+      });
 
       if (opts.report) {
         const snapped = snapForTelemetry(origin, venue);
@@ -210,7 +263,7 @@ export default function TravelTime({
       if (cancelled) return;
       const detail = (e as CustomEvent<FixEventDetail>).detail;
       if (!detail?.origin) return;
-      applyPosition(detail.origin, mode, { report: false });
+      applyPosition(detail.origin, mode, { report: false, at: detail.at });
     };
     window.addEventListener(FIX_EVENT, onSiblingFix);
 
@@ -219,20 +272,16 @@ export default function TravelTime({
       window.removeEventListener(FIX_EVENT, onSiblingFix);
     };
 
-    try {
-      const raw = sessionStorage.getItem(cacheKey);
-      if (raw) {
-        const saved = JSON.parse(raw) as LatLng;
-        if (Number.isFinite(saved?.lat) && Number.isFinite(saved?.lng)) {
-          // `report: false` — this visitor already produced an `eta-result`
-          // when the fix was taken; re-firing it on every page view would
-          // inflate the one metric this feature exists to measure.
-          applyPosition(saved, mode, { report: false });
-          return cleanup;
-        }
-      }
-    } catch {
-      // Private-mode / quota failures are not worth a branch.
+    // `report: false` — this visitor already produced an `eta-result` when
+    // the fix was taken; re-firing it on every page view would inflate the
+    // one metric this feature exists to measure.
+    const stored = readStoredFix(cacheKey);
+    if (stored) {
+      applyPosition({ lat: stored.lat, lng: stored.lng }, mode, {
+        report: false,
+        at: stored.at,
+      });
+      return cleanup;
     }
 
     // Permissions API is absent on some older Safari builds; leaving the
@@ -259,37 +308,47 @@ export default function TravelTime({
   }, [cacheKey]);
 
   const requestLocation = useCallback(
-    (forMode: TravelMode) => {
+    (forMode: TravelMode, opts?: { silent?: boolean }) => {
       if (!("geolocation" in navigator)) {
         setPhase({ status: "error", kind: "unavailable" });
         trackUmami("eta-permission", { state: "unavailable", placement });
         return;
       }
 
-      setPhase({ status: "locating" });
+      // A silent refresh keeps the previous answer on screen and only flags
+      // it as updating, so the panel never regresses to a spinner for a
+      // value it already has.
+      if (opts?.silent) {
+        setPhase((p) => (p.status === "ready" ? { ...p, refreshing: true } : p));
+      } else {
+        setPhase({ status: "locating" });
+      }
 
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           if (!mountedRef.current) return;
           const origin = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          const at = pos.timestamp || Date.now();
           trackUmami("eta-permission", { state: "granted", placement });
 
           try {
-            // Store snapped, never precise.
+            // Store snapped, never precise — plus the age, so a later replay
+            // can tell whether this is still current.
+            const snapped = snapForTelemetry(origin, venue);
             sessionStorage.setItem(
               cacheKey,
-              JSON.stringify(snapForTelemetry(origin, venue)),
+              JSON.stringify({ ...snapped, at } satisfies StoredFix),
             );
           } catch {
             /* non-fatal */
           }
 
-          applyPosition(origin, forMode, { report: true });
+          applyPosition(origin, forMode, { report: true, at });
 
           // Bring the sibling instance up to date so a guest who scrolls on
           // doesn't meet a button offering to redo what just happened.
           window.dispatchEvent(
-            new CustomEvent<FixEventDetail>(FIX_EVENT, { detail: { origin } }),
+            new CustomEvent<FixEventDetail>(FIX_EVENT, { detail: { origin, at } }),
           );
         },
         (err) => {
@@ -300,8 +359,14 @@ export default function TravelTime({
               : err.code === err.TIMEOUT
                 ? "timeout"
                 : "unavailable";
-          setPhase({ status: "error", kind });
           trackUmami("eta-permission", { state: kind, placement });
+          // A failed *silent* refresh must not destroy a good answer the
+          // guest is already reading — just drop the "updating" flag.
+          if (opts?.silent) {
+            setPhase((p) => (p.status === "ready" ? { ...p, refreshing: false } : p));
+            return;
+          }
+          setPhase({ status: "error", kind });
         },
         {
           // A city-block-accurate fix from Wi-Fi/cell towers returns in
@@ -310,29 +375,49 @@ export default function TravelTime({
           // to the nearest 5 minutes.
           enableHighAccuracy: false,
           timeout: 8000,
-          // Reuse a recent fix from another site/tab — instant answer.
-          maximumAge: 300_000,
+          // `0`, not a window: this call only ever runs because we decided
+          // the answer must reflect *now*. Letting the browser hand back a
+          // cached position would defeat the point — and with a non-zero
+          // value here, tapping "check again" after driving across town
+          // returned the old location.
+          maximumAge: 0,
         },
       );
     },
     [applyPosition, cacheKey, placement, venue],
   );
 
+  /**
+   * Opening the panel.
+   *
+   * The rule: whatever is on screen must describe *now*. A fix younger than
+   * `FIX_STALE_MS` is shown as-is; anything older is shown immediately but
+   * re-measured in the background, so the guest sees a number instantly and
+   * it corrects itself a moment later. Only a genuinely absent or expired
+   * fix produces a spinner.
+   */
   const handleTrigger = useCallback(() => {
     trackUmami("eta-intent", { mode, placement });
     setOpen(true);
-    // A replayed fix is already in `ready` — don't re-prompt, just show it.
-    if (phase.status === "idle" || phase.status === "error") {
-      requestLocation(mode);
+
+    if (phase.status === "ready") {
+      if (Date.now() - phase.at > FIX_STALE_MS) requestLocation(mode, { silent: true });
+      return;
     }
-  }, [mode, phase.status, placement, requestLocation]);
+    if (phase.status === "locating") return;
+    requestLocation(mode);
+  }, [mode, phase, placement, requestLocation]);
 
   const switchMode = useCallback(
     (next: TravelMode) => {
       setMode(next);
       // Recomputing is free and offline; no second prompt, no second call.
       if (phase.status === "ready") {
-        applyPosition(phase.origin, next, { report: false });
+        applyPosition(phase.origin, next, {
+          report: false,
+          at: phase.at,
+          refreshing: phase.refreshing,
+        });
         trackUmami("eta-mode-switch", { mode: next, placement });
       }
     },
@@ -412,7 +497,10 @@ export default function TravelTime({
             imperial={imperial}
             venue={venue}
             venueName={venueName}
+            at={phase.at}
+            refreshing={phase.refreshing}
             onSwitchMode={switchMode}
+            onRefresh={() => requestLocation(mode, { silent: true })}
           />
         )}
 
@@ -542,6 +630,12 @@ function LocatingState() {
 /**
  * The answer. Duration is the hero — it is the question that was asked —
  * with distance as supporting detail, then the hand-off to a real map.
+ *
+ * The freshness line under it is not decoration. Because a fix is cached
+ * for the session, the panel can legitimately show a position taken a few
+ * minutes ago; saying so — and offering one tap to redo it — is what keeps
+ * "travel time" honest. Without it the first cut silently replayed an
+ * hour-old position and looked simply wrong.
  */
 function ReadyState({
   estimate,
@@ -549,18 +643,34 @@ function ReadyState({
   imperial,
   venue,
   venueName,
+  at,
+  refreshing,
   onSwitchMode,
+  onRefresh,
 }: {
   estimate: TravelEstimate;
   mode: TravelMode;
   imperial: boolean;
   venue: LatLng;
   venueName: string;
+  at: number;
+  refreshing: boolean;
   onSwitchMode: (m: TravelMode) => void;
+  onRefresh: () => void;
 }) {
   // Offering "walk" for a 20 km trip is noise, and in a routed future it
   // would be a wasted paid call. The toggle only exists where plausible.
   const showWalkToggle = estimate.straightKm <= WALK_MAX_KM || mode === "walk";
+
+  // Re-rendered on a timer so "just now" doesn't still say that five
+  // minutes later, while the sheet sits open.
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => tick((n) => n + 1), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const age = Date.now() - at;
 
   return (
     <div>
@@ -591,6 +701,27 @@ function ReadyState({
               <Footprints size={15} strokeWidth={1.75} aria-hidden="true" />
             </ModeButton>
           </div>
+        )}
+      </div>
+
+      <div className="mt-2.5 flex items-center gap-2 text-[11.5px] text-muted-foreground">
+        {refreshing ? (
+          <>
+            <LoaderCircle size={12} strokeWidth={2} aria-hidden="true" className="animate-spin" />
+            <span>Updating your location…</span>
+          </>
+        ) : (
+          <>
+            <span>From your location {formatAge(age)}</span>
+            <button
+              type="button"
+              onClick={onRefresh}
+              className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+            >
+              <RotateCw size={11} strokeWidth={2.25} aria-hidden="true" />
+              Check again
+            </button>
+          </>
         )}
       </div>
 
