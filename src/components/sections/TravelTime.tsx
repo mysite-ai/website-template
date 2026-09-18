@@ -10,9 +10,11 @@ import {
   FIX_TTL_MS,
   formatAge,
   formatDistance,
+  fetchRoutedTravel,
   formatDuration,
   googleMapsHref,
   haversineKm,
+  isDenseCoreCity,
   prefersAppleMaps,
   snapForTelemetry,
   usesImperial,
@@ -29,6 +31,11 @@ interface Props {
   country: string | null;
   /** Venue display name, used as the Apple Maps pin label. */
   venueName: string;
+  /**
+   * Venue city. Used only to tell a dense urban core from a US suburb, which
+   * changes the estimate by 25% — see `DENSE_CORE_FACTOR`.
+   */
+  city: string | null;
   /** Stable key for the per-session result cache. */
   locationId: string;
   /**
@@ -153,6 +160,7 @@ export default function TravelTime({
   venue,
   country,
   venueName,
+  city,
   locationId,
   variant = "icon",
   placement,
@@ -169,12 +177,17 @@ export default function TravelTime({
    */
   const [permission, setPermission] = useState<PermissionState | null>(null);
   const imperial = usesImperial(country);
+  const denseCore = isDenseCoreCity(city);
 
   const mountedRef = useRef(true);
+  // In-flight routing request, so a superseded one can be cancelled rather
+  // than landing on newer state (or billing us for a result nobody sees).
+  const routeAbortRef = useRef<AbortController | null>(null);
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      routeAbortRef.current?.abort();
     };
   }, []);
 
@@ -192,7 +205,7 @@ export default function TravelTime({
       forMode: TravelMode,
       opts: { report: boolean; at: number; refreshing?: boolean },
     ) => {
-      const estimate = estimateTravel(origin, venue, forMode);
+      const estimate = estimateTravel(origin, venue, forMode, { denseCore });
 
       if (!estimate) {
         const km = haversineKm(origin, venue);
@@ -214,6 +227,48 @@ export default function TravelTime({
         at: opts.at,
         refreshing: opts.refreshing ?? false,
       });
+
+      /*
+       * Upgrade to a traffic-aware duration in the background.
+       *
+       * The estimate above is already on screen, so this is latency the
+       * guest never waits on. It matters because the free-flow number can be
+       * badly optimistic in traffic — reported from real use as ~40 min here
+       * against 1 h 10 in Google Maps — and a guest who checks Maps next
+       * catches the discrepancy.
+       *
+       * Only for `report: true`: a replayed or sibling-adopted fix already
+       * went through this path once, and re-routing on every mount would
+       * multiply provider calls by the number of page views.
+       */
+      if (opts.report) {
+        routeAbortRef.current?.abort();
+        const controller = new AbortController();
+        routeAbortRef.current = controller;
+
+        void fetchRoutedTravel(snapForTelemetry(origin, venue), forMode, controller.signal).then(
+          (routed) => {
+            if (!mountedRef.current || controller.signal.aborted || !routed) return;
+            // Guard against a late response landing on a newer state: the
+            // guest may have switched mode or re-measured meanwhile.
+            setPhase((p) =>
+              p.status === "ready" && p.estimate.mode === routed.mode
+                ? { ...p, estimate: routed }
+                : p,
+            );
+            trackUmami("eta-routed", {
+              placement,
+              mode: routed.mode,
+              traffic: routed.traffic === true,
+              duration_min: routed.durationMin,
+              // How wrong the local model was for this trip. Aggregated, this
+              // is what tells us whether the fallback is worth keeping honest
+              // or whether its constants need refitting.
+              delta_min: routed.durationMin - estimate.durationMin,
+            });
+          },
+        );
+      }
 
       if (opts.report) {
         const snapped = snapForTelemetry(origin, venue);
@@ -245,7 +300,7 @@ export default function TravelTime({
         identifyUmami({ eta_bucket: eta, distance_bucket: dist });
       }
     },
-    [imperial, placement, venue],
+    [denseCore, imperial, placement, venue],
   );
 
   /**
@@ -433,7 +488,9 @@ export default function TravelTime({
    * the icon variant, so the row isn't left with a mystery glyph.
    */
   const answer =
-    phase.status === "ready" ? `~${formatDuration(phase.estimate.durationMin)}` : null;
+    phase.status === "ready"
+      ? `${phase.estimate.source === "routed" ? "" : "~"}${formatDuration(phase.estimate.durationMin)}`
+      : null;
 
   return (
     <>
@@ -677,8 +734,11 @@ function ReadyState({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="flex items-baseline gap-2 text-[34px] font-semibold leading-none tracking-tight tabular-nums">
-            {/* The "~" is load-bearing: this is a model, not a measurement. */}
-            ~{formatDuration(estimate.durationMin)}
+            {/* The "~" marks a modelled number. A routed duration is a real
+                measurement, so it drops the tilde — the punctuation carries
+                the claim, and over-hedging a true number is its own lie. */}
+            {estimate.source === "routed" ? "" : "~"}
+            {formatDuration(estimate.durationMin)}
             <span className="text-[15px] font-normal text-muted-foreground">
               {formatDistance(estimate.distanceKm, imperial)}
             </span>
@@ -712,7 +772,13 @@ function ReadyState({
           </>
         ) : (
           <>
-            <span>From your location {formatAge(age)}</span>
+            {/* Which *kind* of number this is, not just how old it is. A
+                free-flow estimate and a traffic-aware one can differ by 40%,
+                so conflating them is how a guest ends up distrusting both. */}
+            <span>
+              {estimate.traffic ? "Current traffic · " : "Without traffic · "}
+              from your location {formatAge(age)}
+            </span>
             <button
               type="button"
               onClick={onRefresh}

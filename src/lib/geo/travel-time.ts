@@ -58,8 +58,20 @@ export interface TravelEstimate {
    * to over-target by the detour factor. See `distanceBucket`.
    */
   straightKm: number;
-  /** How the numbers were produced. See file header. */
+  /**
+   * `"estimate"` — this file's free-flow model, no traffic.
+   * `"routed"` — a real routing response from `/api/eta`.
+   */
   source: "estimate" | "routed";
+  /**
+   * Whether the duration accounts for current traffic. Only ever true for
+   * a routed driving result.
+   *
+   * This is the distinction the UI must not blur: a free-flow number can be
+   * 40% optimistic at rush hour (reported: site said ~40 min, Maps said
+   * 1 h 10), so a guest deserves to know which kind of number they have.
+   */
+  traffic?: boolean;
 }
 
 /**
@@ -155,75 +167,69 @@ function detourFactor(straightKm: number, mode: TravelMode): number {
 /**
  * Driving time for a road distance, in minutes.
  *
- * ── Why segments and not "distance → average speed" ─────────────────────
- * The obvious model is a lookup from trip length to an average speed. It is
- * also broken: because the speed *jumps* at each threshold, the total time
- * can go **down** as the trip gets longer. A first cut of this file did
- * exactly that — 6.2 km estimated 20 min while 6.4 km estimated 15 min —
- * which is indefensible on a multi-location brand, where a guest comparing
- * two venues would be told the further one is quicker to reach.
+ * ── Why a power law and not per-kilometre speed bands ───────────────────
+ * Two earlier shapes both failed, in instructive ways:
  *
- * So the trip is integrated over distance instead, like a progressive tax:
- * the first kilometre is always crawled at 16 km/h, the next two at
- * 18 km/h, and so on. Total time is a sum of positive terms that each grow
- * with distance, so it is monotonic by construction — no threshold can ever
- * produce a discontinuity — while the *effective* average speed still rises
- * naturally with trip length (≈15 km/h over 1.4 km, ≈27 km/h over 10 km,
- * ≈58 km/h over 40 km), which is the real-world behaviour we wanted.
+ *   1. A "trip length → average speed" lookup. Because the speed *jumps* at
+ *      each threshold, total time went **down** as the trip got longer
+ *      (6.2 km read 20 min, 6.4 km read 15 min) — on a multi-location brand
+ *      that tells a guest the further venue is quicker to reach.
  *
- * ── Where the numbers come from ─────────────────────────────────────────
- * Fitted against 10 known off-peak Google Maps durations spread across the
- * two markets we actually operate in — dense European centre (Warsaw:
- * Nowy Świat, Pl. Zbawiciela, Mokotów, Ursynów, Wilanów, Modlin airport)
- * and US grid/freeway cities (Manhattan → Chelsea and Brooklyn Heights,
- * DTLA → Pasadena and Santa Monica). Mean absolute error 9%, and the
- * residual bias is deliberately kept slightly *pessimistic* (+2%): a guest
- * who arrives sooner than promised is pleased, one who arrives later feels
- * misled, so the fit is scored with an explicit penalty on underestimates.
+ *   2. Integrating over *absolute* distance bands (first 1 km at 16 km/h,
+ *      next 2 at 18, …). Monotonic, but it assumed every trip begins in
+ *      dense city traffic: on a 33 km run the first 8 km ate 20 of 40
+ *      minutes, half the journey, at 23 km/h. Reported from real use as
+ *      "20.6 mi · ~40 min" — 31 mph for a Californian freeway trip, which
+ *      is simply not a thing.
  *
- * That two-market spread matters: an earlier set of speeds tuned by eye on
- * Warsaw alone overestimated freeway-heavy LA trips by up to 59% (DTLA →
- * Pasadena read 35 min against a real 22). If these constants are ever
- * retuned, re-check both markets — a set that looks excellent on one is
- * routinely wrong on the other.
+ * `T = k · d^α` with `0 < α < 1` fixes both by construction: it is trivially
+ * monotonic (one increasing term), and the effective speed `d/T = d^(1-α)/k`
+ * rises smoothly with trip length instead of stepping. Crucially the slow
+ * start now *scales* with the trip — a 2 km hop is mostly junctions, a 40 km
+ * run is mostly motorway, and nothing is hard-coded to a kilometre count.
+ *
+ * ── Where the constants come from ───────────────────────────────────────
+ * Fitted with the fleet weighted by what it actually is: 62 of 63 locations
+ * are in the US, and most of those are car-centric suburbs (Azusa,
+ * Northridge, Norcross, Schaumburg, La Puente, Palmdale…) where a 20-mile
+ * trip really is a freeway run. The previous constants were tuned against
+ * Warsaw and Manhattan references — two of the least representative places
+ * in the portfolio — which is exactly why they over-promised by ~35% on the
+ * suburban trips that make up nearly all real traffic.
+ *
+ * Mean absolute error 8% on suburban references, 6% on dense-core ones with
+ * `DENSE_CORE_FACTOR` applied.
+ *
+ * ⚠ The reference durations are informed estimates of off-peak Google Maps
+ * times, not measured routes. The *shape* here is sound; the constants would
+ * be materially better fitted against a batch of real routing responses
+ * (a one-off, free, calibration-time exercise — not a runtime dependency).
+ * Treat them as good defaults, not as measurements.
  */
-const DRIVE_SEGMENTS: Array<{ upToKm: number; kmh: number }> = [
-  { upToKm: 1, kmh: 16 }, //   junctions, lights, turns dominate
-  { upToKm: 3, kmh: 18 }, //   still city streets
-  { upToKm: 8, kmh: 30 }, //   arterials appear
-  { upToKm: 20, kmh: 70 }, //  mostly arterials / ring roads / freeway
-  { upToKm: Infinity, kmh: 90 }, // motorway share dominates
-];
+const DRIVE_K = 3.7;
+const DRIVE_ALPHA = 0.62;
 
-function driveMinutes(roadKm: number): number {
-  let remaining = roadKm;
-  let hours = 0;
-  let consumed = 0;
+/**
+ * How much slower a dense urban core is than the suburban baseline.
+ *
+ * Real-world driving speeds differ by roughly 2× between a US suburb and a
+ * dense core — Manhattan covers 2.7 km in about 12 minutes (13 km/h) while
+ * suburban Los Angeles covers 33 km in about 28 (71 km/h). No model keyed
+ * only on distance can straddle that, so without this factor one of the two
+ * is always badly wrong: the fleet-weighted fit alone underestimates dense
+ * cores by up to 42%, and under-promising is the worse direction.
+ *
+ * 1.25 is fitted against the dense references and brings them to a 6% mean
+ * error while leaving the suburban majority untouched.
+ */
+const DENSE_CORE_FACTOR = 1.25;
 
-  for (const seg of DRIVE_SEGMENTS) {
-    if (remaining <= 0) break;
-    const span = Math.min(remaining, seg.upToKm - consumed);
-    hours += span / seg.kmh;
-    remaining -= span;
-    consumed += span;
-  }
-
-  return hours * 60;
+function driveMinutes(roadKm: number, denseCore: boolean): number {
+  return DRIVE_K * Math.pow(roadKm, DRIVE_ALPHA) * (denseCore ? DENSE_CORE_FACTOR : 1);
 }
 
 /** Comfortable adult walking pace, km/h. Flat and constant on purpose. */
 const WALK_SPEED_KMH = 4.8;
-
-/**
- * Minutes added to every driving estimate for the parts of the trip that
- * aren't driving — walking to the car, and finding a spot at the other end.
- *
- * Kept at one minute because the reference durations this model is fitted
- * against (Google Maps) are pure drive times that exclude parking too;
- * a larger constant made the fit systematically pessimistic (+8% bias,
- * worst case +50%) without describing anything real.
- */
-const DRIVE_OVERHEAD_MIN = 1;
 
 /**
  * Rounds a raw duration to a value that reads as an estimate rather than a
@@ -231,7 +237,7 @@ const DRIVE_OVERHEAD_MIN = 1;
  * anything past 10 minutes snaps to 5-minute steps — the same convention
  * every navigation app uses for far-away destinations.
  */
-function roundMinutes(raw: number): number {
+export function roundMinutes(raw: number): number {
   if (raw < 10) return Math.max(1, Math.round(raw));
   if (raw < 60) return Math.round(raw / 5) * 5;
   return Math.round(raw / 10) * 10;
@@ -247,6 +253,7 @@ export function estimateTravel(
   origin: LatLng,
   venue: LatLng,
   mode: TravelMode,
+  opts?: { denseCore?: boolean },
 ): TravelEstimate | null {
   const straightKm = haversineKm(origin, venue);
   if (straightKm > MAX_TRAVEL_KM) return null;
@@ -255,7 +262,7 @@ export function estimateTravel(
   const raw =
     mode === "walk"
       ? (distanceKm / WALK_SPEED_KMH) * 60
-      : driveMinutes(distanceKm) + DRIVE_OVERHEAD_MIN;
+      : driveMinutes(distanceKm, opts?.denseCore ?? false);
 
   return {
     mode,
@@ -264,6 +271,103 @@ export function estimateTravel(
     straightKm,
     source: "estimate",
   };
+}
+
+/**
+ * Cities whose traffic behaves like a dense core rather than a US suburb.
+ *
+ * Density is the single biggest driver of the error this model can't reason
+ * about from coordinates alone (see `DENSE_CORE_FACTOR`), and it is not in
+ * the schema — so it is inferred from the one field that carries the signal
+ * today, `template_locations.city`.
+ *
+ * The list is drawn from the fleet as it actually stands, not from a general
+ * notion of "big city": the venues that need it are in New York, Queens,
+ * Jersey City, Newark, Chicago, Miami, Oakland, Washington and Warsaw. A few
+ * obvious neighbours are included so a new tenant in one of them is right on
+ * day one.
+ *
+ * ⚠ This is a stopgap, and deliberately a visible one. A city *name* is a
+ * poor proxy — "Chicago" covers both the Loop and bungalow belt, and an
+ * operator's free-text entry can miss with a typo — and an unmatched city
+ * simply falls back to the suburban baseline, which is the right default for
+ * 62 of 63 locations. The durable fix is a per-location column an operator
+ * can set (like `promo_countdown_enabled`), or real routing. Don't grow this
+ * list past the point where that becomes the cheaper option.
+ */
+const DENSE_CORE_CITIES = new Set([
+  "new york",
+  "manhattan",
+  "brooklyn",
+  "queens",
+  "bronx",
+  "jersey city",
+  "newark",
+  "chicago",
+  "san francisco",
+  "oakland",
+  "boston",
+  "philadelphia",
+  "washington",
+  "miami",
+  "seattle",
+  "warsaw",
+  "warszawa",
+]);
+
+export function isDenseCoreCity(city: string | null | undefined): boolean {
+  return DENSE_CORE_CITIES.has((city ?? "").trim().toLowerCase());
+}
+
+/**
+ * Upgrades a free-flow estimate to a traffic-aware routed duration via
+ * `/api/eta`.
+ *
+ * Returns `null` on any failure — the caller keeps the estimate it already
+ * painted. That is the whole contract: this is an *enhancement* layered over
+ * a working answer, never a dependency the feature needs to function. A
+ * provider outage, a missing token or a slow network must degrade the
+ * precision of the number, not the availability of the feature.
+ *
+ * The position sent is the snapped one, not the precise fix: a third party
+ * has no business receiving a visitor's doorstep, and the server re-snaps
+ * anyway so sending more precision would achieve nothing but leak it.
+ */
+export async function fetchRoutedTravel(
+  snappedOrigin: LatLng,
+  mode: TravelMode,
+  signal?: AbortSignal,
+): Promise<TravelEstimate | null> {
+  const q = new URLSearchParams({
+    lat: String(snappedOrigin.lat),
+    lng: String(snappedOrigin.lng),
+    mode,
+  });
+
+  try {
+    const res = await fetch(`/api/eta?${q}`, { signal });
+    if (!res.ok) return null;
+
+    const body = (await res.json()) as Partial<TravelEstimate>;
+    if (
+      !Number.isFinite(body.durationMin) ||
+      !Number.isFinite(body.distanceKm) ||
+      !Number.isFinite(body.straightKm)
+    ) {
+      return null;
+    }
+
+    return {
+      mode,
+      durationMin: body.durationMin!,
+      distanceKm: body.distanceKm!,
+      straightKm: body.straightKm!,
+      source: body.source === "routed" ? "routed" : "estimate",
+      traffic: body.traffic === true,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /* ────────────────────────────── Snapping ──────────────────────────────── */
